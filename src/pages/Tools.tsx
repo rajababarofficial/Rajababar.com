@@ -37,6 +37,14 @@ const tools: Tool[] = [
     status: 'Live',
   },
   {
+    id: 'img-enhance',
+    title: 'AI Image Enhancer',
+    description: 'Enhance lighting, remove backgrounds, and optimize images with AI.',
+    category: 'Image Tools',
+    icon: <Sparkles className="w-6 h-6" />,
+    status: 'Live',
+  },
+  {
     id: 'pdf-merge',
     title: 'PDF Merger',
     description: 'Combine multiple PDF documents into a single high-quality file.',
@@ -205,6 +213,8 @@ function ToolCard({ tool, index }: ToolCardProps) {
     if (tool.status === 'Coming Soon') return;
     if (tool.id === 'pdf-metadata') {
       navigate('/tools/pdf-metadata');
+    } else if (tool.id === 'img-enhance') {
+      navigate('/tools/image-editor');
     }
   };
 
@@ -217,7 +227,7 @@ function ToolCard({ tool, index }: ToolCardProps) {
       exit={{ opacity: 0, scale: 0.9 }}
       transition={{ duration: 0.2, delay: index * 0.05 }}
       className={cn(
-        "group relative p-8 rounded-3xl bg-brand-surface/40 backdrop-blur-xl border border-brand-border hover:border-brand-accent/30 transition-all flex flex-col h-full overflow-hidden cursor-pointer",
+        "group relative p-8 ios-card bg-brand-surface/40 backdrop-blur-xl flex flex-col h-full overflow-hidden cursor-pointer",
         tool.status === 'Coming Soon' && "opacity-75 grayscale-[0.5] cursor-not-allowed"
       )}
     >
@@ -225,7 +235,7 @@ function ToolCard({ tool, index }: ToolCardProps) {
       <div className="absolute -top-24 -right-24 w-48 h-48 bg-brand-accent/5 rounded-full blur-[64px] group-hover:bg-brand-accent/10 transition-all" />
       
       <div className="flex items-start justify-between mb-6">
-        <div className="w-14 h-14 rounded-2xl bg-brand-bg border border-brand-border flex items-center justify-center text-brand-accent group-hover:scale-110 transition-transform">
+        <div className="w-14 h-14 rounded-ios bg-brand-bg border border-brand-border flex items-center justify-center text-brand-accent group-hover:scale-110 transition-transform">
           {tool.icon}
         </div>
         <div className="flex flex-col items-end gap-2">

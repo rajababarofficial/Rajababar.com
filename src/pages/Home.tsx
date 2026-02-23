@@ -23,40 +23,40 @@ export default function Home() {
 
         {/* Content Container with Glassmorphism */}
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="backdrop-blur-md bg-white/5 border border-white/10 p-8 md:p-16 rounded-3xl shadow-2xl inline-block"
-          >
-            <motion.span 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="inline-flex items-center px-3 py-1 rounded-full bg-brand-accent/20 border border-brand-accent/30 text-xs font-medium text-brand-accent mb-6"
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="glass p-8 md:p-16 rounded-ios-lg shadow-2xl inline-block"
             >
-              <Sparkles className="w-3 h-3 mr-2" />
-              Available for Projects
-            </motion.span>
-            
-            <h1 className="text-6xl md:text-8xl font-bold tracking-tighter mb-4 text-white">
-              Raja Babar
-            </h1>
-            
-            <p className="text-xl md:text-2xl text-brand-secondary font-medium mb-10 tracking-tight">
-              AI-Powered Digital Creator & Developer
-            </p>
+              <motion.span 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="inline-flex items-center px-3 py-1 rounded-full bg-brand-accent/20 border border-brand-accent/30 text-[10px] font-bold uppercase tracking-widest text-brand-accent mb-6"
+              >
+                <Sparkles className="w-3 h-3 mr-2" />
+                Available for Projects
+              </motion.span>
+              
+              <h1 className="text-6xl md:text-8xl font-bold tracking-tighter mb-4 text-white">
+                Raja Babar
+              </h1>
+              
+              <p className="text-xl md:text-2xl text-brand-secondary font-medium mb-10 tracking-tight">
+                AI-Powered Digital Creator & Developer
+              </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link to="/tools" className="w-full sm:w-auto px-10 py-4 bg-white text-black font-bold rounded-xl hover:bg-brand-secondary transition-all flex items-center justify-center group">
-                Explore My Tools
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <Link to="/about" className="w-full sm:w-auto px-10 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white font-bold rounded-xl hover:bg-white/20 transition-all">
-                About Me
-              </Link>
-            </div>
-          </motion.div>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Link to="/tools" className="w-full sm:w-auto ios-button bg-brand-accent text-white flex items-center justify-center group shadow-lg shadow-brand-accent/20">
+                  Explore My Tools
+                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <Link to="/about" className="w-full sm:w-auto ios-button bg-white/10 backdrop-blur-sm border border-white/20 text-white hover:bg-white/20 transition-all">
+                  About Me
+                </Link>
+              </div>
+            </motion.div>
         </div>
 
         {/* Scroll Indicator */}
@@ -108,19 +108,19 @@ export default function Home() {
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="group relative p-8 md:p-12 rounded-3xl bg-brand-surface border border-brand-border hover:border-brand-accent/30 transition-all overflow-hidden"
+            className="group relative p-8 md:p-12 ios-card bg-brand-surface/30 overflow-hidden"
           >
             <div className="absolute top-0 right-0 p-12 opacity-5 group-hover:opacity-10 transition-opacity">
               <Building2 className="w-48 h-48" />
             </div>
             
             <div className="relative z-10 flex flex-col md:flex-row items-center gap-12">
-              <div className="w-24 h-24 md:w-32 md:h-32 rounded-3xl bg-brand-bg border border-brand-border flex items-center justify-center text-brand-accent group-hover:scale-110 transition-transform">
+              <div className="w-24 h-24 md:w-32 md:h-32 rounded-ios bg-brand-bg border border-brand-border flex items-center justify-center text-brand-accent group-hover:scale-110 transition-transform">
                 <Building2 className="w-12 h-12 md:w-16 md:h-16" />
               </div>
               
               <div className="flex-1 text-center md:text-left">
-                <h3 className="text-2xl md:text-3xl font-bold mb-4">Office Management System</h3>
+                <h3 className="text-2xl md:text-3xl font-bold mb-4 text-brand-primary">Office Management System</h3>
                 <p className="text-brand-secondary text-lg mb-8 max-w-2xl">
                   This is a live demonstration of the Office Management System developed by Raja Babar. 
                   You can explore features without signing up.
@@ -129,7 +129,7 @@ export default function Home() {
                   href="https://project.rajababar.com" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="inline-flex items-center px-8 py-4 bg-brand-accent text-white font-bold rounded-xl hover:bg-blue-600 transition-all shadow-lg shadow-brand-accent/20"
+                  className="ios-button bg-brand-accent text-white inline-flex items-center shadow-lg shadow-brand-accent/20"
                 >
                   Try Live Demo
                   <ExternalLink className="ml-2 w-5 h-5" />
@@ -172,9 +172,9 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode, titl
   return (
     <motion.div 
       whileHover={{ y: -5 }}
-      className="p-8 rounded-2xl bg-brand-bg border border-brand-border hover:border-brand-accent/50 transition-colors"
+      className="ios-card p-8 bg-brand-surface/50"
     >
-      <div className="w-12 h-12 rounded-xl bg-brand-surface flex items-center justify-center mb-6">
+      <div className="w-12 h-12 rounded-2xl bg-brand-bg border border-brand-border flex items-center justify-center mb-6">
         {icon}
       </div>
       <h3 className="text-xl font-bold mb-3">{title}</h3>

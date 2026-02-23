@@ -3,21 +3,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from '@/src/components/layout/Navbar';
 import Footer from '@/src/components/layout/Footer';
-import Home from '@/src/pages/Home';
-import About from '@/src/pages/About';
-import Projects from '@/src/pages/Projects';
-import Tools from '@/src/pages/Tools';
-import Downloads from '@/src/pages/Downloads';
-import Contact from '@/src/pages/Contact';
-import AuthDemo from '@/src/pages/AuthDemo';
-import Dashboard from '@/src/pages/Dashboard';
-import PdfMetadataExtractor from '@/src/pages/tools/PdfMetadataExtractor';
 import { motion, AnimatePresence } from 'motion/react';
 import type { ReactNode } from 'react';
+import { Loader2 } from 'lucide-react';
+
+// Lazy load pages
+const Home = lazy(() => import('@/src/pages/Home'));
+const About = lazy(() => import('@/src/pages/About'));
+const Projects = lazy(() => import('@/src/pages/Projects'));
+const Tools = lazy(() => import('@/src/pages/Tools'));
+const Downloads = lazy(() => import('@/src/pages/Downloads'));
+const Contact = lazy(() => import('@/src/pages/Contact'));
+const AuthDemo = lazy(() => import('@/src/pages/AuthDemo'));
+const Dashboard = lazy(() => import('@/src/pages/Dashboard'));
+const PdfMetadataExtractor = lazy(() => import('@/src/pages/tools/PdfMetadataExtractor'));
+const ImageEditor = lazy(() => import('@/src/pages/tools/ImageEditor'));
 
 export default function App() {
   return (
@@ -26,22 +30,33 @@ export default function App() {
         <Navbar />
         <main className="flex-grow">
           <AnimatePresence mode="wait">
-            <Routes>
-              <Route path="/" element={<PageWrapper><Home /></PageWrapper>} />
-              <Route path="/about" element={<PageWrapper><About /></PageWrapper>} />
-              <Route path="/projects" element={<PageWrapper><Projects /></PageWrapper>} />
-              <Route path="/tools" element={<PageWrapper><Tools /></PageWrapper>} />
-              <Route path="/tools/pdf-metadata" element={<PageWrapper><PdfMetadataExtractor /></PageWrapper>} />
-              <Route path="/downloads" element={<PageWrapper><Downloads /></PageWrapper>} />
-              <Route path="/contact" element={<PageWrapper><Contact /></PageWrapper>} />
-              <Route path="/auth" element={<PageWrapper><AuthDemo /></PageWrapper>} />
-              <Route path="/dashboard" element={<PageWrapper><Dashboard /></PageWrapper>} />
-            </Routes>
+            <Suspense fallback={<LoadingFallback />}>
+              <Routes>
+                <Route path="/" element={<PageWrapper><Home /></PageWrapper>} />
+                <Route path="/about" element={<PageWrapper><About /></PageWrapper>} />
+                <Route path="/projects" element={<PageWrapper><Projects /></PageWrapper>} />
+                <Route path="/tools" element={<PageWrapper><Tools /></PageWrapper>} />
+                <Route path="/tools/pdf-metadata" element={<PageWrapper><PdfMetadataExtractor /></PageWrapper>} />
+                <Route path="/tools/image-editor" element={<PageWrapper><ImageEditor /></PageWrapper>} />
+                <Route path="/downloads" element={<PageWrapper><Downloads /></PageWrapper>} />
+                <Route path="/contact" element={<PageWrapper><Contact /></PageWrapper>} />
+                <Route path="/auth" element={<PageWrapper><AuthDemo /></PageWrapper>} />
+                <Route path="/dashboard" element={<PageWrapper><Dashboard /></PageWrapper>} />
+              </Routes>
+            </Suspense>
           </AnimatePresence>
         </main>
         <Footer />
       </div>
     </Router>
+  );
+}
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center">
+      <Loader2 className="w-10 h-10 animate-spin text-brand-accent" />
+    </div>
   );
 }
 
