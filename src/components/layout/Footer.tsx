@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Github, Twitter, Linkedin, Mail } from 'lucide-react';
+import { Github, Twitter, Linkedin, Mail, Facebook, Instagram } from 'lucide-react';
 import SiteCredit from '@/src/components/SiteCredit';
 
 export default function Footer() {
@@ -16,10 +16,10 @@ export default function Footer() {
               A personal brand committed to excellence and innovation.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="text-brand-secondary hover:text-white transition-colors"><Github className="w-5 h-5" /></a>
-              <a href="#" className="text-brand-secondary hover:text-white transition-colors"><Twitter className="w-5 h-5" /></a>
-              <a href="#" className="text-brand-secondary hover:text-white transition-colors"><Linkedin className="w-5 h-5" /></a>
-              <a href="#" className="text-brand-secondary hover:text-white transition-colors"><Mail className="w-5 h-5" /></a>
+              <a href="https://facebook.com/rajababarofficial" target="_blank" rel="noopener noreferrer" className="text-brand-secondary hover:text-white transition-colors"><Facebook className="w-5 h-5" /></a>
+              <a href="https://instagram.com/rajababarofficial" target="_blank" rel="noopener noreferrer" className="text-brand-secondary hover:text-white transition-colors"><Instagram className="w-5 h-5" /></a>
+              <a href="https://github.com/rajababarofficial" target="_blank" rel="noopener noreferrer" className="text-brand-secondary hover:text-white transition-colors"><Github className="w-5 h-5" /></a>
+              <a href="mailto:contact@rajababar.com" className="text-brand-secondary hover:text-white transition-colors"><Mail className="w-5 h-5" /></a>
             </div>
           </div>
           

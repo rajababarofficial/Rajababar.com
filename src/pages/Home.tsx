@@ -126,7 +126,7 @@ export default function Home() {
                   You can explore features without signing up.
                 </p>
                 <a 
-                  href="https://office-management-demo.vercel.app" 
+                  href="https://project.rajababar.com" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="inline-flex items-center px-8 py-4 bg-brand-accent text-white font-bold rounded-xl hover:bg-blue-600 transition-all shadow-lg shadow-brand-accent/20"

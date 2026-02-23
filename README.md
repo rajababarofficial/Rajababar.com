@@ -57,3 +57,5 @@ The Bulk PDF Metadata Extractor uses secure server-side processing. Files are te
 ---
 
 Built with ❤️ by [Raja Babar](https://rajababar.com)
+Contact: contact@rajababar.com
+Social: @rajababarofficial

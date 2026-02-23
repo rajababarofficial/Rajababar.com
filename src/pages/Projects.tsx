@@ -27,7 +27,7 @@ const projects = [
     title: "Office Management System",
     description: "This is a live demonstration of the Office Management System developed by Raja Babar. You can explore features without signing up.",
     tags: ["React", "Node.js", "Enterprise"],
-    link: "https://office-management-demo.vercel.app",
+    link: "https://project.rajababar.com",
     github: "#"
   }
 ];

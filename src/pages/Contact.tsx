@@ -20,12 +20,12 @@ export default function Contact() {
             <ContactInfo 
               icon={<Mail className="w-6 h-6 text-brand-accent" />}
               label="Email"
-              value="hello@rajababar.com"
+              value="contact@rajababar.com"
             />
             <ContactInfo 
               icon={<MessageSquare className="w-6 h-6 text-brand-accent" />}
               label="Social"
-              value="@rajababar_tech"
+              value="@rajababarofficial"
             />
             <ContactInfo 
               icon={<MapPin className="w-6 h-6 text-brand-accent" />}
