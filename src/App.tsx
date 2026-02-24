@@ -22,6 +22,7 @@ const AuthDemo = lazy(() => import('@/src/pages/AuthDemo'));
 const Dashboard = lazy(() => import('@/src/pages/Dashboard'));
 const PdfMetadataExtractor = lazy(() => import('@/src/pages/tools/PdfMetadataExtractor'));
 const ImageEditor = lazy(() => import('@/src/pages/tools/ImageEditor'));
+const AdvancePdfExtractor = lazy(() => import('@/src/pages/tools/AdvancePdfExtractor'));
 
 export default function App() {
   return (
@@ -36,7 +37,13 @@ export default function App() {
                 <Route path="/about" element={<PageWrapper><About /></PageWrapper>} />
                 <Route path="/projects" element={<PageWrapper><Projects /></PageWrapper>} />
                 <Route path="/tools" element={<PageWrapper><Tools /></PageWrapper>} />
+                
+                {/* Standard Tool */}
                 <Route path="/tools/pdf-metadata" element={<PageWrapper><PdfMetadataExtractor /></PageWrapper>} />
+                
+                {/* Advance Tool - Naya Route */}
+                <Route path="/tools/advance-pdf" element={<PageWrapper><AdvancePdfExtractor /></PageWrapper>} />
+                
                 <Route path="/tools/image-editor" element={<PageWrapper><ImageEditor /></PageWrapper>} />
                 <Route path="/downloads" element={<PageWrapper><Downloads /></PageWrapper>} />
                 <Route path="/contact" element={<PageWrapper><Contact /></PageWrapper>} />
@@ -72,4 +79,3 @@ function PageWrapper({ children }: { children: ReactNode }) {
     </motion.div>
   );
 }
-

@@ -1,21 +1,21 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion'; // Check karein agar aap 'motion/react' use kar rahe hain ya 'framer-motion'
 import { 
   Search, 
   FileText, 
   Image as ImageIcon, 
-  FileArchive, 
   Scan, 
   ArrowRight, 
   Sparkles,
   Filter,
   Lock,
-  FileSearch
+  FileSearch,
+  Database 
 } from 'lucide-react';
 import { cn } from '@/src/utils/cn';
 
-type ToolCategory = 'All' | 'PDF Tools' | 'Image Tools' | 'File Utilities' | 'Digitization Tools';
+type ToolCategory = 'All' | 'PDF Tools' | 'Image Tools' | 'Digitization Tools';
 
 interface Tool {
   id: string;
@@ -37,28 +37,20 @@ const tools: Tool[] = [
     status: 'Live',
   },
   {
+    id: 'advance-pdf',
+    title: 'Advance PDF Inspector',
+    description: 'Deep scan for hidden custom metadata and internal PDF object properties.',
+    category: 'PDF Tools',
+    icon: <Database className="w-6 h-6" />,
+    status: 'Coming Soon',
+  },
+  {
     id: 'img-enhance',
     title: 'AI Image Enhancer',
     description: 'Enhance lighting, remove backgrounds, and optimize images with AI.',
     category: 'Image Tools',
     icon: <Sparkles className="w-6 h-6" />,
-    status: 'Live',
-  },
-  {
-    id: 'pdf-merge',
-    title: 'PDF Merger',
-    description: 'Combine multiple PDF documents into a single high-quality file.',
-    category: 'PDF Tools',
-    icon: <FileText className="w-6 h-6" />,
     status: 'Coming Soon',
-  },
-  {
-    id: 'pdf-compress',
-    title: 'PDF Compressor',
-    description: 'Reduce PDF file size without losing significant quality.',
-    category: 'PDF Tools',
-    icon: <FileArchive className="w-6 h-6" />,
-    status: 'Beta',
   },
   {
     id: 'img-upscale',
@@ -66,7 +58,7 @@ const tools: Tool[] = [
     description: 'Enhance image resolution using advanced neural networks.',
     category: 'Image Tools',
     icon: <ImageIcon className="w-6 h-6" />,
-    status: 'Live',
+    status: 'Coming Soon',
     isPremium: true,
   },
   {
@@ -78,20 +70,12 @@ const tools: Tool[] = [
     status: 'Coming Soon',
   },
   {
-    id: 'file-convert',
-    title: 'Universal Converter',
-    description: 'Convert between 100+ different file formats instantly.',
-    category: 'File Utilities',
-    icon: <FileArchive className="w-6 h-6" />,
-    status: 'Live',
-  },
-  {
     id: 'ocr-scanner',
     title: 'OCR Text Extractor',
     description: 'Extract text from images and scanned documents with high accuracy.',
     category: 'Digitization Tools',
     icon: <Scan className="w-6 h-6" />,
-    status: 'Beta',
+    status: 'Coming Soon',
     isPremium: true,
   },
   {
@@ -104,7 +88,7 @@ const tools: Tool[] = [
   }
 ];
 
-const categories: ToolCategory[] = ['All', 'PDF Tools', 'Image Tools', 'File Utilities', 'Digitization Tools'];
+const categories: ToolCategory[] = ['All', 'PDF Tools', 'Image Tools', 'Digitization Tools'];
 
 export default function Tools() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -120,13 +104,13 @@ export default function Tools() {
   }, [searchQuery, activeCategory]);
 
   return (
-    <div className="pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 bg-brand-bg min-h-screen">
       {/* Header */}
       <div className="mb-12 text-center md:text-left">
         <motion.h1 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-4xl md:text-6xl font-bold mb-4 text-gradient tracking-tight"
+          className="text-4xl md:text-6xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-500 tracking-tight"
         >
           Tools Hub
         </motion.h1>
@@ -149,12 +133,11 @@ export default function Tools() {
             placeholder="Search tools..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 rounded-2xl bg-brand-surface border border-brand-border focus:outline-none focus:border-brand-accent transition-all placeholder:text-brand-secondary/50"
+            className="w-full pl-12 pr-4 py-3 rounded-2xl bg-brand-surface border border-brand-border focus:outline-none focus:border-brand-accent transition-all placeholder:text-brand-secondary/50 text-white"
           />
         </div>
 
         <div className="flex items-center gap-2 overflow-x-auto pb-2 w-full md:w-auto no-scrollbar">
-          <Filter className="w-4 h-4 text-brand-secondary mr-2 shrink-0 hidden md:block" />
           {categories.map((cat) => (
             <button
               key={cat}
@@ -203,7 +186,6 @@ export default function Tools() {
 interface ToolCardProps {
   tool: Tool;
   index: number;
-  key?: React.Key;
 }
 
 function ToolCard({ tool, index }: ToolCardProps) {
@@ -211,11 +193,8 @@ function ToolCard({ tool, index }: ToolCardProps) {
 
   const handleLaunch = () => {
     if (tool.status === 'Coming Soon') return;
-    if (tool.id === 'pdf-metadata') {
-      navigate('/tools/pdf-metadata');
-    } else if (tool.id === 'img-enhance') {
-      navigate('/tools/image-editor');
-    }
+    // Dynamic navigation based on tool ID
+    navigate(`/tools/${tool.id}`);
   };
 
   return (
@@ -227,15 +206,15 @@ function ToolCard({ tool, index }: ToolCardProps) {
       exit={{ opacity: 0, scale: 0.9 }}
       transition={{ duration: 0.2, delay: index * 0.05 }}
       className={cn(
-        "group relative p-8 ios-card bg-brand-surface/40 backdrop-blur-xl flex flex-col h-full overflow-hidden cursor-pointer",
+        "group relative p-8 bg-brand-surface/40 backdrop-blur-xl border border-brand-border rounded-[2rem] flex flex-col h-full overflow-hidden cursor-pointer hover:border-brand-accent/50 transition-all",
         tool.status === 'Coming Soon' && "opacity-75 grayscale-[0.5] cursor-not-allowed"
       )}
     >
-      {/* Glow Effect */}
+      {/* Background Glow */}
       <div className="absolute -top-24 -right-24 w-48 h-48 bg-brand-accent/5 rounded-full blur-[64px] group-hover:bg-brand-accent/10 transition-all" />
       
       <div className="flex items-start justify-between mb-6">
-        <div className="w-14 h-14 rounded-ios bg-brand-bg border border-brand-border flex items-center justify-center text-brand-accent group-hover:scale-110 transition-transform">
+        <div className="w-14 h-14 rounded-2xl bg-brand-bg border border-brand-border flex items-center justify-center text-brand-accent group-hover:scale-110 transition-transform">
           {tool.icon}
         </div>
         <div className="flex flex-col items-end gap-2">
@@ -256,7 +235,7 @@ function ToolCard({ tool, index }: ToolCardProps) {
       </div>
 
       <div className="flex-1">
-        <h3 className="text-xl font-bold mb-2 group-hover:text-brand-accent transition-colors">{tool.title}</h3>
+        <h3 className="text-xl font-bold mb-2 text-white group-hover:text-brand-accent transition-colors">{tool.title}</h3>
         <p className="text-brand-secondary text-sm leading-relaxed mb-6">
           {tool.description}
         </p>
@@ -267,12 +246,12 @@ function ToolCard({ tool, index }: ToolCardProps) {
           {tool.category}
         </span>
         {tool.status !== 'Coming Soon' ? (
-          <button className="text-sm font-bold text-white hover:text-brand-accent transition-colors flex items-center">
+          <div className="text-sm font-bold text-white group-hover:text-brand-accent transition-colors flex items-center">
             Launch Tool
             <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </button>
+          </div>
         ) : (
-          <span className="text-xs font-medium text-brand-secondary italic">Notify Me</span>
+          <span className="text-xs font-medium text-brand-secondary italic">Coming Soon</span>
         )}
       </div>
     </motion.div>
