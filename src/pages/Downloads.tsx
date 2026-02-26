@@ -44,7 +44,9 @@ export default function Downloads() {
 
     const fetchFonts = async () => {
       try {
-        const res = await fetch('/api/fonts');
+        // Fetch the statically generated metadata
+        const res = await fetch('/fonts-metadata.json');
+        if (!res.ok) throw new Error('Static file not found');
         const data = await res.json();
         setFonts(data);
 
