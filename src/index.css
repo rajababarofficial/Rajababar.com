@@ -1,16 +1,25 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'MB Sarem Iqra';
+  src: url('/fonts-sindhi/mb sarem iqra.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  
+  --font-sindhi: "MB Sarem Iqra", "Noto Sans Arabic", "Inter", ui-sans-serif, system-ui, sans-serif;
+
   --color-brand-primary: var(--brand-primary);
   --color-brand-secondary: var(--brand-secondary);
   --color-brand-accent: #3b82f6;
   --color-brand-bg: var(--brand-bg);
   --color-brand-surface: var(--brand-surface);
   --color-brand-border: var(--brand-border);
-  
+
   --radius-ios: 1.25rem;
   --radius-ios-lg: 2rem;
 }
@@ -36,13 +45,17 @@
     @apply bg-brand-bg text-brand-primary antialiased selection:bg-brand-accent/30 selection:text-brand-primary transition-colors duration-300;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
+
+  html.lang-sindhi body {
+    font-family: var(--font-sindhi);
+  }
 }
 
 @layer utilities {
   .glass {
     @apply bg-brand-surface/70 backdrop-blur-xl border border-brand-border shadow-sm;
   }
-  
+
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-b from-brand-primary to-brand-primary/60;
   }
@@ -55,4 +68,3 @@
     @apply px-6 py-3 rounded-ios font-semibold transition-all active:scale-95 disabled:opacity-50;
   }
 }
-

@@ -1,21 +1,23 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion'; // Check karein agar aap 'motion/react' use kar rahe hain ya 'framer-motion'
-import { 
-  Search, 
-  FileText, 
-  Image as ImageIcon, 
-  Scan, 
-  ArrowRight, 
+import { motion, AnimatePresence } from 'motion/react';
+import {
+  Search,
+  FileText,
+  Image as ImageIcon,
+  Scan,
+  ArrowRight,
   Sparkles,
   Filter,
   Lock,
   FileSearch,
-  Database 
+  Database,
+  Building2
 } from 'lucide-react';
 import { cn } from '@/src/utils/cn';
+import { useLanguage } from '@/src/context/LanguageContext';
 
-type ToolCategory = 'All' | 'PDF Tools' | 'Image Tools' | 'Digitization Tools';
+type ToolCategory = 'All' | 'PDF Tools' | 'Office Tools';
 
 interface Tool {
   id: string;
@@ -25,102 +27,69 @@ interface Tool {
   icon: React.ReactNode;
   status: 'Live' | 'Beta' | 'Coming Soon';
   isPremium?: boolean;
+  externalLink?: string;
 }
 
-const tools: Tool[] = [
+const getTools = (isSindhi: boolean): Tool[] => [
   {
     id: 'pdf-metadata',
-    title: 'PDF Metadata Extractor',
-    description: 'Extract embedded metadata from multiple PDF files in bulk.',
+    title: isSindhi ? 'PDF ميٽاڊيٽا ايڪسٽريڪٽر' : 'PDF Metadata Extractor',
+    description: isSindhi ? 'گهڻن پي ڊي ايف فائلن مان هڪ ئي وقت ميٽاڊيٽا ڪڍو.' : 'Extract embedded metadata from multiple PDF files in bulk.',
     category: 'PDF Tools',
     icon: <FileSearch className="w-6 h-6" />,
     status: 'Live',
   },
   {
-    id: 'advance-pdf',
-    title: 'Advance PDF Inspector',
-    description: 'Deep scan for hidden custom metadata and internal PDF object properties.',
-    category: 'PDF Tools',
-    icon: <Database className="w-6 h-6" />,
-    status: 'Coming Soon',
-  },
-  {
-    id: 'img-enhance',
-    title: 'AI Image Enhancer',
-    description: 'Enhance lighting, remove backgrounds, and optimize images with AI.',
-    category: 'Image Tools',
-    icon: <Sparkles className="w-6 h-6" />,
-    status: 'Coming Soon',
-  },
-  {
-    id: 'img-upscale',
-    title: 'AI Image Upscaler',
-    description: 'Enhance image resolution using advanced neural networks.',
-    category: 'Image Tools',
-    icon: <ImageIcon className="w-6 h-6" />,
-    status: 'Coming Soon',
-    isPremium: true,
-  },
-  {
-    id: 'img-remove-bg',
-    title: 'Background Remover',
-    description: 'Automatically remove backgrounds from images in seconds.',
-    category: 'Image Tools',
-    icon: <Sparkles className="w-6 h-6" />,
-    status: 'Coming Soon',
-  },
-  {
-    id: 'ocr-scanner',
-    title: 'OCR Text Extractor',
-    description: 'Extract text from images and scanned documents with high accuracy.',
-    category: 'Digitization Tools',
-    icon: <Scan className="w-6 h-6" />,
-    status: 'Coming Soon',
-    isPremium: true,
-  },
-  {
-    id: 'doc-digitizer',
-    title: 'Smart Digitizer',
-    description: 'Transform physical documents into structured digital data.',
-    category: 'Digitization Tools',
-    icon: <FileText className="w-6 h-6" />,
-    status: 'Coming Soon',
+    id: 'office-management',
+    title: isSindhi ? 'آفيس مئنيجمينٽ سسٽم' : 'Office Management System',
+    description: isSindhi ? 'لائيو آفيس مئنيجمينٽ سسٽم جو ڊيمو. سائن اپ ڪرڻ کانسواءِ استعمال ڪريو.' : 'A featured enterprise solution showcase. Explore without signing up.',
+    category: 'Office Tools',
+    icon: <Building2 className="w-6 h-6" />,
+    status: 'Live',
+    externalLink: 'https://project.rajababar.com'
   }
 ];
 
-const categories: ToolCategory[] = ['All', 'PDF Tools', 'Image Tools', 'Digitization Tools'];
+const getCategories = (isSindhi: boolean) => [
+  { id: 'all', label: isSindhi ? 'سڀ' : 'All', value: 'All' as ToolCategory },
+  { id: 'pdf', label: isSindhi ? 'پي ڊي ايف ٽولز' : 'PDF Tools', value: 'PDF Tools' as ToolCategory },
+  { id: 'office', label: isSindhi ? 'آفيس ٽولز' : 'Office Tools', value: 'Office Tools' as ToolCategory }
+];
 
 export default function Tools() {
+  const { isSindhi } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<ToolCategory>('All');
 
+  const toolsList = useMemo(() => getTools(isSindhi), [isSindhi]);
+
   const filteredTools = useMemo(() => {
-    return tools.filter(tool => {
-      const matchesSearch = tool.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                           tool.description.toLowerCase().includes(searchQuery.toLowerCase());
+    return toolsList.filter(tool => {
+      const matchesSearch = tool.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tool.description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = activeCategory === 'All' || tool.category === activeCategory;
       return matchesSearch && matchesCategory;
     });
-  }, [searchQuery, activeCategory]);
+  }, [searchQuery, activeCategory, toolsList]);
 
   return (
     <div className="pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 bg-brand-bg min-h-screen">
       {/* Header */}
       <div className="mb-12 text-center md:text-left">
-        <motion.h1 
+        <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-4xl md:text-6xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-500 tracking-tight"
+          className="text-4xl md:text-6xl font-bold mb-4 text-gradient tracking-tight"
         >
-          Tools Hub
+          {isSindhi ? 'ٽولز هب' : 'Tools Hub'}
         </motion.h1>
-        <motion.p 
+        <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           className="text-brand-secondary text-lg max-w-2xl"
         >
-          High-performance digital utilities designed for modern engineering and creative workflows.
+          {isSindhi ? 'جديد انجنيئرنگ ۽ تخليقي ڪمن لاءِ اعليٰ ڪارڪردگي وارا ڊجيٽل ٽولز.' : 'High-performance digital utilities designed for modern engineering and creative workflows.'}
         </motion.p>
       </div>
 
@@ -128,28 +97,29 @@ export default function Tools() {
       <div className="flex flex-col md:flex-row gap-6 mb-12 items-center justify-between">
         <div className="relative w-full md:w-96 group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-secondary group-focus-within:text-brand-accent transition-colors" />
-          <input 
+          <input
             type="text"
-            placeholder="Search tools..."
+            placeholder={isSindhi ? "ٽولز ڳوليو..." : "Search tools..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 rounded-2xl bg-brand-surface border border-brand-border focus:outline-none focus:border-brand-accent transition-all placeholder:text-brand-secondary/50 text-white"
+            className="w-full pl-12 pr-4 py-3 rounded-2xl bg-brand-surface border border-brand-border focus:outline-none focus:border-brand-accent transition-all placeholder:text-brand-secondary/50 text-brand-primary"
+            dir="auto"
           />
         </div>
 
         <div className="flex items-center gap-2 overflow-x-auto pb-2 w-full md:w-auto no-scrollbar">
-          {categories.map((cat) => (
+          {getCategories(isSindhi).map((cat) => (
             <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.value)}
               className={cn(
                 "px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border shrink-0",
-                activeCategory === cat 
-                  ? "bg-white text-black border-white" 
+                activeCategory === cat.value
+                  ? "bg-brand-primary text-brand-bg border-brand-primary"
                   : "bg-brand-surface text-brand-secondary border-brand-border hover:border-brand-secondary"
               )}
             >
-              {cat}
+              {cat.label}
             </button>
           ))}
         </div>
@@ -159,23 +129,33 @@ export default function Tools() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <AnimatePresence mode="popLayout">
           {filteredTools.map((tool, index) => (
-            <ToolCard key={tool.id} tool={tool} index={index} />
+            <motion.div
+              key={tool.id}
+              layout
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.2, delay: index * 0.05 }}
+              className="h-full"
+            >
+              <ToolCard tool={tool} index={index} />
+            </motion.div>
           ))}
         </AnimatePresence>
       </div>
 
       {filteredTools.length === 0 && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="text-center py-24 border border-dashed border-brand-border rounded-3xl"
         >
-          <p className="text-brand-secondary">No tools found matching your criteria.</p>
-          <button 
+          <p className="text-brand-secondary">{isSindhi ? "توهان جي معيار سان ملندڙ ڪو به ٽول نه مليو." : "No tools found matching your criteria."}</p>
+          <button
             onClick={() => { setSearchQuery(''); setActiveCategory('All'); }}
             className="mt-4 text-brand-accent font-bold hover:underline"
           >
-            Clear all filters
+            {isSindhi ? "سڀ فلٽرز صاف ڪريو" : "Clear all filters"}
           </button>
         </motion.div>
       )}
@@ -193,18 +173,16 @@ function ToolCard({ tool, index }: ToolCardProps) {
 
   const handleLaunch = () => {
     if (tool.status === 'Coming Soon') return;
-    // Dynamic navigation based on tool ID
+    if (tool.externalLink) {
+      window.open(tool.externalLink, '_blank');
+      return;
+    }
     navigate(`/tools/${tool.id}`);
   };
 
   return (
-    <motion.div
-      layout
+    <div
       onClick={handleLaunch}
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      transition={{ duration: 0.2, delay: index * 0.05 }}
       className={cn(
         "group relative p-8 bg-brand-surface/40 backdrop-blur-xl border border-brand-border rounded-[2rem] flex flex-col h-full overflow-hidden cursor-pointer hover:border-brand-accent/50 transition-all",
         tool.status === 'Coming Soon' && "opacity-75 grayscale-[0.5] cursor-not-allowed"
@@ -212,7 +190,7 @@ function ToolCard({ tool, index }: ToolCardProps) {
     >
       {/* Background Glow */}
       <div className="absolute -top-24 -right-24 w-48 h-48 bg-brand-accent/5 rounded-full blur-[64px] group-hover:bg-brand-accent/10 transition-all" />
-      
+
       <div className="flex items-start justify-between mb-6">
         <div className="w-14 h-14 rounded-2xl bg-brand-bg border border-brand-border flex items-center justify-center text-brand-accent group-hover:scale-110 transition-transform">
           {tool.icon}
@@ -220,8 +198,8 @@ function ToolCard({ tool, index }: ToolCardProps) {
         <div className="flex flex-col items-end gap-2">
           <span className={cn(
             "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider",
-            tool.status === 'Live' ? "bg-emerald-500/10 text-emerald-500" : 
-            tool.status === 'Beta' ? "bg-brand-accent/10 text-brand-accent" : "bg-brand-secondary/10 text-brand-secondary"
+            tool.status === 'Live' ? "bg-emerald-500/10 text-emerald-500" :
+              tool.status === 'Beta' ? "bg-brand-accent/10 text-brand-accent" : "bg-brand-secondary/10 text-brand-secondary"
           )}>
             {tool.status}
           </span>
@@ -235,7 +213,7 @@ function ToolCard({ tool, index }: ToolCardProps) {
       </div>
 
       <div className="flex-1">
-        <h3 className="text-xl font-bold mb-2 text-white group-hover:text-brand-accent transition-colors">{tool.title}</h3>
+        <h3 className="text-xl font-bold mb-2 text-brand-primary group-hover:text-brand-accent transition-colors">{tool.title}</h3>
         <p className="text-brand-secondary text-sm leading-relaxed mb-6">
           {tool.description}
         </p>
@@ -246,14 +224,14 @@ function ToolCard({ tool, index }: ToolCardProps) {
           {tool.category}
         </span>
         {tool.status !== 'Coming Soon' ? (
-          <div className="text-sm font-bold text-white group-hover:text-brand-accent transition-colors flex items-center">
-            Launch Tool
+          <div className="text-sm font-bold text-brand-primary group-hover:text-brand-accent transition-colors flex items-center">
+            {tool.externalLink ? 'Live Demo' : 'Launch Tool'}
             <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </div>
         ) : (
           <span className="text-xs font-medium text-brand-secondary italic">Coming Soon</span>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }

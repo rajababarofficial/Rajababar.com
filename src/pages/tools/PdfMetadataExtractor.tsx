@@ -17,7 +17,7 @@ const PdfMetadataExtractor: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files ? Array.from(e.target.files) : [];
+    const files: File[] = e.target.files ? Array.from(e.target.files) : [];
     if (files.length > 100) {
       alert("Limit Exceeded! Aap sirf 100 files tak select kar sakte hain.");
       return;
@@ -32,7 +32,7 @@ const PdfMetadataExtractor: React.FC = () => {
       try {
         const arrayBuffer = await file.arrayBuffer();
         const pdfDoc = await PDFDocument.load(arrayBuffer, { updateMetadata: false });
-        
+
         const info: PdfRow = {
           File_Name: file.name,
           Title: pdfDoc.getTitle() || '',
@@ -42,8 +42,8 @@ const PdfMetadataExtractor: React.FC = () => {
 
         // Custom fields extraction
         const infoDictObj = pdfDoc.context.lookup(pdfDoc.catalog.get(pdfDoc.context.obj('Info')));
-        const infoDict = infoDictObj as any; 
-        
+        const infoDict = infoDictObj as any;
+
         if (infoDict && typeof infoDict.entries === 'function') {
           infoDict.entries().forEach(([key, value]: [any, any]) => {
             const kn = key.asName();
@@ -69,7 +69,7 @@ const PdfMetadataExtractor: React.FC = () => {
   };
 
   const toggleColumn = (col: string) => {
-    setSelectedColumns(prev => 
+    setSelectedColumns(prev =>
       prev.includes(col) ? prev.filter(c => c !== col) : [...prev, col]
     );
   };
@@ -100,18 +100,22 @@ const PdfMetadataExtractor: React.FC = () => {
   };
 
   return (
-    <div style={{ maxWidth: '900px', margin: '40px auto', padding: '30px', fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif', backgroundColor: '#ffffff', borderRadius: '15px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
-      <h2 style={{ textAlign: 'center', color: '#2c3e50', marginBottom: '30px' }}>📄 PDF Metadata Professional</h2>
-      
-      <div 
-        style={{ border: '2px dashed #3498db', padding: '40px', textAlign: 'center', borderRadius: '12px', backgroundColor: '#f8fbff', marginBottom: '25px', cursor: 'pointer' }} 
+    <div style={{ maxWidth: '900px', margin: '140px auto 40px', padding: '30px', fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif', backgroundColor: '#ffffff', borderRadius: '15px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
+      <h2 style={{ textAlign: 'center', color: '#2c3e50', marginBottom: '10px' }}>📄 PDF Metadata Professional</h2>
+
+      <div style={{ backgroundColor: '#fff3cd', color: '#856404', padding: '15px', borderRadius: '8px', marginBottom: '30px', border: '1px solid #ffeeba', fontSize: '14px', lineHeight: '1.6' }}>
+        <strong>Note:</strong> This web version extracts standard metadata (File Name, Title, Author, Pages). For <strong>full data extraction</strong> including custom and hidden fields, please download the <a href="https://github.com/rajababarofficial/PDF-Metadata-Extraction-Pro/releases/download/v1.0.0/PDF-Metadata-Pro.exe" style={{ color: '#0056b3', textDecoration: 'underline', fontWeight: 'bold' }}>Windows Desktop Tool (EXE)</a> or view the <a href="https://github.com/rajababarofficial/PDF-Metadata-Extraction-Pro.git" target="_blank" rel="noopener noreferrer" style={{ color: '#0056b3', textDecoration: 'underline' }}>Python Project</a> on GitHub.
+      </div>
+
+      <div
+        style={{ border: '2px dashed #3498db', padding: '40px', textAlign: 'center', borderRadius: '12px', backgroundColor: '#f8fbff', marginBottom: '25px', cursor: 'pointer' }}
         onClick={() => fileInputRef.current?.click()}
       >
-        <input 
-          type="file" multiple accept=".pdf" 
-          onChange={handleFileChange} 
+        <input
+          type="file" multiple accept=".pdf"
+          onChange={handleFileChange}
           ref={fileInputRef}
-          style={{ display: 'none' }} 
+          style={{ display: 'none' }}
         />
         <div style={{ fontSize: '40px', marginBottom: '10px' }}>📤</div>
         <button style={{ padding: '12px 25px', backgroundColor: '#3498db', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px', fontWeight: '600' }}>
@@ -128,8 +132,8 @@ const PdfMetadataExtractor: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px', marginTop: '15px' }}>
             {availableColumns.map(col => (
               <label key={col} style={{ fontSize: '14px', display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '8px', border: '1px solid #f0f0f0', borderRadius: '6px', backgroundColor: selectedColumns.includes(col) ? '#eef7fe' : '#fff' }}>
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={selectedColumns.includes(col)}
                   onChange={() => toggleColumn(col)}
                   style={{ marginRight: '10px', width: '16px', height: '16px' }}
@@ -151,8 +155,8 @@ const PdfMetadataExtractor: React.FC = () => {
               <option value="ods">OpenDocument (.ods)</option>
             </select>
           </div>
-          
-          <button 
+
+          <button
             onClick={downloadFile}
             style={{ padding: '15px 35px', backgroundColor: '#27ae60', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px', boxShadow: '0 4px 10px rgba(39, 174, 96, 0.3)' }}
           >

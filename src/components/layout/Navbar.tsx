@@ -5,21 +5,24 @@ import { Menu, X, Cpu, LayoutDashboard, Sun, Moon } from 'lucide-react';
 import { cn } from '@/src/utils/cn';
 import { SupabaseService } from '@/src/services/supabaseService';
 import { useTheme } from '@/src/context/ThemeContext';
+import { useLanguage } from '@/src/context/LanguageContext';
 import type { User } from '@supabase/supabase-js';
 
 const navItems = [
-  { name: 'Home', path: '/' },
-  { name: 'About', path: '/about' },
-  { name: 'Projects', path: '/projects' },
-  { name: 'Tools', path: '/tools' },
-  { name: 'Downloads', path: '/downloads' },
-  { name: 'Contact', path: '/contact' },
+  { name: 'Home', nameSd: 'مُک صفحو', path: '/' },
+  { name: 'About', nameSd: 'منهنجي باري ۾', path: '/about' },
+  { name: 'Library', nameSd: 'لائبريري', path: '/library' },
+  { name: 'Projects', nameSd: 'پروجيڪٽس', path: '/projects' },
+  { name: 'Tools', nameSd: 'ٽولز', path: '/tools' },
+  { name: 'Downloads', nameSd: 'ڊائون لوڊس', path: '/downloads' },
+  { name: 'Contact', nameSd: 'رابطو', path: '/contact' },
 ];
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = React.useState(false);
   const [user, setUser] = useState<User | null>(null);
   const { theme, toggleTheme } = useTheme();
+  const { language, toggleLanguage, isSindhi } = useLanguage();
   const location = useLocation();
 
   useEffect(() => {
@@ -46,11 +49,19 @@ export default function Navbar() {
                   location.pathname === item.path ? "text-brand-accent" : "text-brand-secondary"
                 )}
               >
-                {item.name}
+                {isSindhi ? item.nameSd : item.name}
               </Link>
             ))}
-            
+
             <div className="h-4 w-px bg-brand-border mx-2" />
+
+            <button
+              onClick={toggleLanguage}
+              className="px-2 py-1 text-xs font-bold rounded-md bg-brand-surface border border-brand-border text-brand-secondary hover:text-brand-primary hover:border-brand-accent transition-colors uppercase"
+              aria-label="Toggle language"
+            >
+              {language === 'en' ? 'SD' : 'EN'}
+            </button>
 
             <button
               onClick={toggleTheme}
@@ -63,17 +74,23 @@ export default function Navbar() {
             {user ? (
               <Link to="/dashboard" className="px-5 py-2 bg-brand-accent text-white text-sm font-bold rounded-full hover:opacity-90 transition-all flex items-center shadow-sm">
                 <LayoutDashboard className="w-4 h-4 mr-2" />
-                Dashboard
+                {isSindhi ? 'ڊيش بورڊ' : 'Dashboard'}
               </Link>
             ) : (
               <Link to="/auth" className="px-5 py-2 bg-brand-primary text-brand-bg text-sm font-bold rounded-full hover:opacity-90 transition-all shadow-sm">
-                Get Started
+                {isSindhi ? 'شروع ڪريو' : 'Get Started'}
               </Link>
             )}
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden flex items-center space-x-4">
+          <div className="md:hidden flex items-center space-x-2">
+            <button
+              onClick={toggleLanguage}
+              className="px-2 py-1 text-xs font-bold rounded-md bg-brand-surface border border-brand-border text-brand-secondary hover:text-brand-primary hover:border-brand-accent transition-colors uppercase"
+            >
+              {language === 'en' ? 'SD' : 'EN'}
+            </button>
             <button
               onClick={toggleTheme}
               className="p-2 rounded-full hover:bg-brand-surface transition-colors text-brand-secondary"
@@ -110,26 +127,26 @@ export default function Navbar() {
                     location.pathname === item.path ? "text-brand-accent bg-brand-surface" : "text-brand-secondary hover:text-brand-primary hover:bg-brand-surface"
                   )}
                 >
-                  {item.name}
+                  {isSindhi ? item.nameSd : item.name}
                 </Link>
               ))}
               <div className="pt-4 px-3">
                 {user ? (
-                  <Link 
-                    to="/dashboard" 
+                  <Link
+                    to="/dashboard"
                     onClick={() => setIsOpen(false)}
                     className="block w-full px-4 py-4 bg-brand-accent text-white text-center font-bold rounded-xl flex items-center justify-center shadow-lg shadow-brand-accent/20"
                   >
                     <LayoutDashboard className="w-5 h-5 mr-2" />
-                    Dashboard
+                    {isSindhi ? 'ڊيش بورڊ' : 'Dashboard'}
                   </Link>
                 ) : (
-                  <Link 
-                    to="/auth" 
+                  <Link
+                    to="/auth"
                     onClick={() => setIsOpen(false)}
                     className="block w-full px-4 py-4 bg-brand-primary text-brand-bg text-center font-bold rounded-xl shadow-lg"
                   >
-                    Get Started
+                    {isSindhi ? 'شروع ڪريو' : 'Get Started'}
                   </Link>
                 )}
               </div>
