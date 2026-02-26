@@ -82,7 +82,7 @@ export default function Home() {
             <p className="text-brand-secondary max-w-2xl mx-auto">{isSindhi ? 'منهنجا ٺاهيل ڪجهه خاص سافٽويئر جيڪي لائيو ڪم ڪري رهيا آهن.' : 'Explore some of my specific software that are currently live and working.'}</p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
             {/* Office Management */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -150,6 +150,51 @@ export default function Home() {
               </div>
             </motion.div>
           </div>
+
+          {/* New Digital Library Highlight Card */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-brand-accent/20 to-brand-surface border border-brand-accent/30 p-12 group"
+          >
+            <div className="absolute -top-24 -right-24 w-96 h-96 bg-brand-accent/10 blur-[100px] rounded-full group-hover:bg-brand-accent/20 transition-all duration-700" />
+            <div className="relative z-10 flex flex-col lg:flex-row items-center gap-12 text-center lg:text-left">
+              <div className="flex-1">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-brand-accent/10 border border-brand-accent/20 rounded-full text-brand-accent text-xs font-bold uppercase tracking-widest mb-6">
+                  <Sparkles className="w-4 h-4" />
+                  {isSindhi ? 'نوان ريسورسز' : 'New Resource'}
+                </div>
+                <h3 className="text-3xl md:text-5xl font-bold text-brand-primary mb-6 leading-tight">
+                  {isSindhi ? '9,000+ ڪتابن جي مڪمل لائبريري' : 'Comprehensive Library of 9,000+ Books'}
+                </h3>
+                <p className="text-brand-secondary text-xl mb-10 max-w-2xl">
+                  {isSindhi
+                    ? 'اسان هڪ مڪمل ڊجيٽل لائبريري گڏ ڪئي آهي جتي توهان سنڌي، اردو ۽ ٻين ٻولين جا هزارين ڪتاب ڳولهي ۽ ڊائون لوڊ ڪري سگهو ٿا.'
+                    : 'We have aggregated a massive digital library metadata where you can search, explore, and download thousands of Sindhi, Urdu, and English books in one place.'}
+                </p>
+                <Link
+                  to="/library"
+                  className="ios-button inline-flex bg-brand-accent text-white shadow-xl shadow-brand-accent/30 hover:scale-105"
+                >
+                  {isSindhi ? 'لائبريري گهمو' : 'Visit Digital Library'}
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 gap-4 w-full lg:w-96 shrink-0">
+                <div className="aspect-[3/4] rounded-2xl bg-brand-bg/50 border border-brand-border flex items-center justify-center p-4">
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-brand-accent">9,274</div>
+                    <div className="text-[10px] uppercase tracking-widest text-brand-secondary mt-1">Found Item</div>
+                  </div>
+                </div>
+                <div className="aspect-[3/4] rounded-2xl bg-brand-accent/10 border border-brand-accent/20 flex flex-col items-center justify-center p-4 mt-8 opacity-60">
+                  <Building2 className="w-12 h-12 text-brand-accent mb-2" />
+                  <div className="text-[10px] text-center font-bold uppercase text-brand-secondary">lib.sindh.org Metadata</div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 

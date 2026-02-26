@@ -12,7 +12,7 @@ export default function Footer() {
               RAJABABAR<span className="text-brand-accent">.COM</span>
             </Link>
             <p className="text-brand-secondary max-w-sm mb-6">
-              Building the future of digital tools and premium tech solutions. 
+              Building the future of digital tools and premium tech solutions.
               A personal brand committed to excellence and innovation.
             </p>
             <div className="flex space-x-4">
@@ -22,10 +22,11 @@ export default function Footer() {
               <a href="mailto:contact@rajababar.com" className="text-brand-secondary hover:text-white transition-colors"><Mail className="w-5 h-5" /></a>
             </div>
           </div>
-          
+
           <div>
             <h3 className="text-sm font-bold uppercase tracking-widest mb-4">Platform</h3>
             <ul className="space-y-2 text-brand-secondary text-sm">
+              <li><Link to="/library" className="hover:text-white transition-colors">Digital Library</Link></li>
               <li><Link to="/tools" className="hover:text-white transition-colors">Tools</Link></li>
               <li><Link to="/downloads" className="hover:text-white transition-colors">Downloads</Link></li>
               <li><Link to="/projects" className="hover:text-white transition-colors">Projects</Link></li>
@@ -43,7 +44,7 @@ export default function Footer() {
             </ul>
           </div>
         </div>
-        
+
         <div className="mt-12 pt-8 border-t border-brand-border flex flex-col md:flex-row justify-between items-center text-xs text-brand-secondary">
           <p>© {new Date().getFullYear()} Rajababar.com. All rights reserved.</p>
           <p className="mt-4 md:mt-0">Crafted with precision for the digital age.</p>
