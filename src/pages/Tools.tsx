@@ -3,16 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Search,
-  FileText,
-  Image as ImageIcon,
-  Scan,
   ArrowRight,
-  Sparkles,
-  Filter,
   Lock,
   FileSearch,
-  Database,
-  Building2
+  Building2,
+  Globe
 } from 'lucide-react';
 import { cn } from '@/src/utils/cn';
 import { useLanguage } from '@/src/context/LanguageContext';
@@ -24,6 +19,7 @@ interface Tool {
   title: string;
   description: string;
   category: ToolCategory;
+  categorySd: string;
   icon: React.ReactNode;
   status: 'Live' | 'Beta' | 'Coming Soon';
   isPremium?: boolean;
@@ -36,14 +32,16 @@ const getTools = (isSindhi: boolean): Tool[] => [
     title: isSindhi ? 'PDF ميٽاڊيٽا ايڪسٽريڪٽر' : 'PDF Metadata Extractor',
     description: isSindhi ? 'گهڻن پي ڊي ايف فائلن مان هڪ ئي وقت ميٽاڊيٽا ڪڍو.' : 'Extract embedded metadata from multiple PDF files in bulk.',
     category: 'PDF Tools',
+    categorySd: 'پي ڊي ايف ٽولز',
     icon: <FileSearch className="w-6 h-6" />,
     status: 'Live',
   },
   {
     id: 'office-management',
     title: isSindhi ? 'آفيس مئنيجمينٽ سسٽم' : 'Office Management System',
-    description: isSindhi ? 'لائيو آفيس مئنيجمينٽ سسٽم جو ڊيمو. سائن اپ ڪرڻ کانسواءِ استعمال ڪريو.' : 'A featured enterprise solution showcase. Explore without signing up.',
+    description: isSindhi ? 'لائيو آفيس مئنيجمينٽ سسٽم جو ڊيمو. لاگ ان ڪري استعمال ڪريو.' : 'A featured enterprise solution showcase. Explore with sign in.',
     category: 'Office Tools',
+    categorySd: 'آفيس ٽولز',
     icon: <Building2 className="w-6 h-6" />,
     status: 'Live',
     externalLink: 'https://project.rajababar.com'
@@ -73,13 +71,19 @@ export default function Tools() {
   }, [searchQuery, activeCategory, toolsList]);
 
   return (
-    <div className="pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 bg-brand-bg min-h-screen">
+    <div 
+      dir={isSindhi ? 'rtl' : 'ltr'} 
+      className="pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 bg-brand-bg min-h-screen"
+    >
       {/* Header */}
-      <div className="mb-12 text-center md:text-left">
+      <div className={cn("mb-12 text-center", isSindhi ? "md:text-right" : "md:text-left")}>
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-4xl md:text-6xl font-bold mb-4 text-gradient tracking-tight"
+          className={cn(
+            "text-4xl md:text-6xl font-bold mb-4 text-brand-primary tracking-tight",
+            isSindhi && "font-sindhi leading-tight"
+          )}
         >
           {isSindhi ? 'ٽولز هب' : 'Tools Hub'}
         </motion.h1>
@@ -87,23 +91,34 @@ export default function Tools() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="text-brand-secondary text-lg max-w-2xl"
+          className={cn(
+            "text-brand-secondary text-lg max-w-2xl",
+            isSindhi && "font-sindhi leading-relaxed"
+          )}
         >
           {isSindhi ? 'جديد انجنيئرنگ ۽ تخليقي ڪمن لاءِ اعليٰ ڪارڪردگي وارا ڊجيٽل ٽولز.' : 'High-performance digital utilities designed for modern engineering and creative workflows.'}
         </motion.p>
       </div>
 
       {/* Controls */}
-      <div className="flex flex-col md:flex-row gap-6 mb-12 items-center justify-between">
+      <div className={cn(
+        "flex flex-col md:flex-row gap-6 mb-12 items-center justify-between",
+        isSindhi ? "md:flex-row-reverse" : ""
+      )}>
         <div className="relative w-full md:w-96 group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-secondary group-focus-within:text-brand-accent transition-colors" />
+          <Search className={cn(
+            "absolute top-1/2 -translate-y-1/2 w-5 h-5 text-brand-secondary group-focus-within:text-brand-accent transition-colors",
+            isSindhi ? "right-4" : "left-4"
+          )} />
           <input
             type="text"
             placeholder={isSindhi ? "ٽولز ڳوليو..." : "Search tools..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 rounded-2xl bg-brand-surface border border-brand-border focus:outline-none focus:border-brand-accent transition-all placeholder:text-brand-secondary/50 text-brand-primary"
-            dir="auto"
+            className={cn(
+              "w-full py-3 rounded-2xl bg-brand-surface border border-brand-border focus:outline-none focus:border-brand-accent transition-all placeholder:text-brand-secondary/50 text-brand-primary",
+              isSindhi ? "pr-12 pl-4 font-sindhi" : "pl-12 pr-4",
+            )}
           />
         </div>
 
@@ -116,7 +131,8 @@ export default function Tools() {
                 "px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border shrink-0",
                 activeCategory === cat.value
                   ? "bg-brand-primary text-brand-bg border-brand-primary"
-                  : "bg-brand-surface text-brand-secondary border-brand-border hover:border-brand-secondary"
+                  : "bg-brand-surface text-brand-secondary border-brand-border hover:border-brand-secondary",
+                isSindhi && "font-sindhi text-lg px-6"
               )}
             >
               {cat.label}
@@ -136,24 +152,26 @@ export default function Tools() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.2, delay: index * 0.05 }}
-              className="h-full"
             >
-              <ToolCard tool={tool} index={index} />
+              <ToolCard tool={tool} index={index} isSindhi={isSindhi} />
             </motion.div>
           ))}
         </AnimatePresence>
       </div>
 
+      {/* Empty State */}
       {filteredTools.length === 0 && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="text-center py-24 border border-dashed border-brand-border rounded-3xl"
         >
-          <p className="text-brand-secondary">{isSindhi ? "توهان جي معيار سان ملندڙ ڪو به ٽول نه مليو." : "No tools found matching your criteria."}</p>
+          <p className={cn("text-brand-secondary", isSindhi && "font-sindhi text-xl")}>
+            {isSindhi ? "توهان جي معيار سان ملندڙ ڪو به ٽول نه مليو." : "No tools found matching your criteria."}
+          </p>
           <button
             onClick={() => { setSearchQuery(''); setActiveCategory('All'); }}
-            className="mt-4 text-brand-accent font-bold hover:underline"
+            className={cn("mt-4 text-brand-accent font-bold hover:underline", isSindhi && "font-sindhi")}
           >
             {isSindhi ? "سڀ فلٽرز صاف ڪريو" : "Clear all filters"}
           </button>
@@ -163,12 +181,7 @@ export default function Tools() {
   );
 }
 
-interface ToolCardProps {
-  tool: Tool;
-  index: number;
-}
-
-function ToolCard({ tool, index }: ToolCardProps) {
+function ToolCard({ tool, index, isSindhi }: { tool: Tool; index: number; isSindhi: boolean }) {
   const navigate = useNavigate();
 
   const handleLaunch = () => {
@@ -188,14 +201,11 @@ function ToolCard({ tool, index }: ToolCardProps) {
         tool.status === 'Coming Soon' && "opacity-75 grayscale-[0.5] cursor-not-allowed"
       )}
     >
-      {/* Background Glow */}
-      <div className="absolute -top-24 -right-24 w-48 h-48 bg-brand-accent/5 rounded-full blur-[64px] group-hover:bg-brand-accent/10 transition-all" />
-
       <div className="flex items-start justify-between mb-6">
         <div className="w-14 h-14 rounded-2xl bg-brand-bg border border-brand-border flex items-center justify-center text-brand-accent group-hover:scale-110 transition-transform">
           {tool.icon}
         </div>
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex flex-col items-end gap-2 font-sans">
           <span className={cn(
             "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider",
             tool.status === 'Live' ? "bg-emerald-500/10 text-emerald-500" :
@@ -213,23 +223,43 @@ function ToolCard({ tool, index }: ToolCardProps) {
       </div>
 
       <div className="flex-1">
-        <h3 className="text-xl font-bold mb-2 text-brand-primary group-hover:text-brand-accent transition-colors">{tool.title}</h3>
-        <p className="text-brand-secondary text-sm leading-relaxed mb-6">
+        <h3 className={cn(
+          "text-xl font-bold mb-2 text-brand-primary group-hover:text-brand-accent transition-colors",
+          isSindhi && "font-sindhi text-2xl"
+        )}>
+          {tool.title}
+        </h3>
+        <p className={cn(
+          "text-brand-secondary text-sm leading-relaxed mb-6",
+          isSindhi && "font-sindhi text-lg"
+        )}>
           {tool.description}
         </p>
       </div>
 
-      <div className="pt-6 border-t border-brand-border/50 flex items-center justify-between">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-brand-secondary/50">
-          {tool.category}
+      <div className={cn(
+        "pt-6 border-t border-brand-border/50 flex items-center justify-between",
+        isSindhi ? "flex-row-reverse" : ""
+      )}>
+        <span className={cn(
+          "text-[10px] font-bold uppercase tracking-widest text-brand-secondary/50",
+          isSindhi && "font-sindhi text-xs tracking-normal"
+        )}>
+          {isSindhi ? tool.categorySd : tool.category}
         </span>
+        
         {tool.status !== 'Coming Soon' ? (
-          <div className="text-sm font-bold text-brand-primary group-hover:text-brand-accent transition-colors flex items-center">
-            {tool.externalLink ? 'Live Demo' : 'Launch Tool'}
-            <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          <div className={cn(
+            "text-sm font-bold text-brand-primary group-hover:text-brand-accent transition-colors flex items-center",
+            isSindhi && "font-sindhi text-lg"
+          )}>
+            {tool.externalLink ? (isSindhi ? 'لائيو ڊيمو' : 'Live Demo') : (isSindhi ? 'ٽول کوليو' : 'Launch Tool')}
+            <ArrowRight className={cn("ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform", isSindhi && "rotate-180 mr-2 ml-0")} />
           </div>
         ) : (
-          <span className="text-xs font-medium text-brand-secondary italic">Coming Soon</span>
+          <span className={cn("text-xs font-medium text-brand-secondary italic", isSindhi && "font-sindhi")}>
+            {isSindhi ? 'جلد اچي رهيو آهي' : 'Coming Soon'}
+          </span>
         )}
       </div>
     </div>

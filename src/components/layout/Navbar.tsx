@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'motion/react';
-import { Menu, X, Cpu, LayoutDashboard, Sun, Moon } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Menu, X, Cpu, LayoutDashboard, Sun, Moon, Languages } from 'lucide-react';
 import { cn } from '@/src/utils/cn';
 import { SupabaseService } from '@/src/services/supabaseService';
 import { useTheme } from '@/src/context/ThemeContext';
@@ -9,17 +9,16 @@ import { useLanguage } from '@/src/context/LanguageContext';
 import type { User } from '@supabase/supabase-js';
 
 const navItems = [
-  { name: 'Home', nameSd: 'مُک صفحو', path: '/' },
-  { name: 'About', nameSd: 'منهنجي باري ۾', path: '/about' },
-  { name: 'Library', nameSd: 'لائبريري', path: '/library' },
-  { name: 'Projects', nameSd: 'پروجيڪٽس', path: '/projects' },
-  { name: 'Tools', nameSd: 'ٽولز', path: '/tools' },
-  { name: 'Downloads', nameSd: 'ڊائون لوڊس', path: '/downloads' },
-  { name: 'Contact', nameSd: 'رابطو', path: '/contact' },
+  { name: 'Home', nameSindhi: 'مُک صفحو', path: '/' },
+  { name: 'About', nameSindhi: 'منهنجي باري ۾', path: '/about' },
+  { name: 'Library', nameSindhi: 'لائبريري', path: '/library' },
+  { name: 'Tools', nameSindhi: 'ٽولز', path: '/tools' },
+  { name: 'Downloads', nameSindhi: 'ڊائون لوڊس', path: '/downloads' },
+  { name: 'Contact', nameSindhi: 'رابطو', path: '/contact' },
 ];
 
 export default function Navbar() {
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const { theme, toggleTheme } = useTheme();
   const { language, toggleLanguage, isSindhi } = useLanguage();
@@ -30,12 +29,16 @@ export default function Navbar() {
   }, [location]);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-brand-border bg-brand-bg/80 backdrop-blur-xl">
+    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-brand-border bg-brand-bg/80 backdrop-blur-xl font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
+          
+          {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
             <Cpu className="w-8 h-8 text-brand-accent group-hover:rotate-12 transition-transform" />
-            <span className="text-xl font-bold tracking-tighter text-brand-primary">RAJABABAR<span className="text-brand-accent">.COM</span></span>
+            <span className="text-xl font-bold tracking-tighter text-brand-primary uppercase">
+              RAJABABAR<span className="text-brand-accent">.COM</span>
+            </span>
           </Link>
 
           {/* Desktop Nav */}
@@ -45,61 +48,66 @@ export default function Navbar() {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "text-sm font-medium transition-colors hover:text-brand-accent",
-                  location.pathname === item.path ? "text-brand-accent" : "text-brand-secondary"
+                  "transition-colors hover:text-brand-accent",
+                  location.pathname === item.path ? "text-brand-accent" : "text-brand-secondary",
+                  isSindhi ? "font-sindhi text-xl px-1" : "text-sm font-medium"
                 )}
               >
-                {isSindhi ? item.nameSd : item.name}
+                {isSindhi ? item.nameSindhi : item.name}
               </Link>
             ))}
 
             <div className="h-4 w-px bg-brand-border mx-2" />
 
+            {/* Full Text Language Toggle */}
             <button
               onClick={toggleLanguage}
-              className="px-2 py-1 text-xs font-bold rounded-md bg-brand-surface border border-brand-border text-brand-secondary hover:text-brand-primary hover:border-brand-accent transition-colors uppercase"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-surface border border-brand-border text-brand-secondary hover:text-brand-primary hover:border-brand-accent transition-all group"
               aria-label="Toggle language"
             >
-              {language === 'en' ? 'SD' : 'EN'}
+              <Languages className="w-4 h-4 text-brand-accent group-hover:scale-110 transition-transform" />
+              <span className={cn(
+                "font-bold tracking-tight",
+                // Agar English mode mein hai to button "Sindhi" dikhaye (Sindhi font mein)
+                // Agar Sindhi mode mein hai to button "ENGLISH" dikhaye (Sans font mein)
+                language === 'en' ? "font-sindhi text-base" : "font-sans text-[10px] uppercase"
+              )}>
+                {language === 'en' ? 'سنڌي' : 'English'}
+              </span>
             </button>
 
+            {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
               className="p-2 rounded-full hover:bg-brand-surface transition-colors text-brand-secondary hover:text-brand-primary"
-              aria-label="Toggle theme"
             >
               {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
             </button>
 
-            {user ? (
-              <Link to="/dashboard" className="px-5 py-2 bg-brand-accent text-white text-sm font-bold rounded-full hover:opacity-90 transition-all flex items-center shadow-sm">
-                <LayoutDashboard className="w-4 h-4 mr-2" />
-                {isSindhi ? 'ڊيش بورڊ' : 'Dashboard'}
-              </Link>
-            ) : (
-              <Link to="/auth" className="px-5 py-2 bg-brand-primary text-brand-bg text-sm font-bold rounded-full hover:opacity-90 transition-all shadow-sm">
-                {isSindhi ? 'شروع ڪريو' : 'Get Started'}
+            {/* Dashboard Link (Only if Logged In) */}
+            {user && (
+              <Link to="/dashboard" className="px-5 py-2 bg-brand-accent text-white rounded-full hover:opacity-90 transition-all flex items-center shadow-sm group">
+                <LayoutDashboard className="w-4 h-4 mr-2 group-hover:rotate-6 transition-transform" />
+                <span className={isSindhi ? "font-sindhi text-lg" : "text-sm font-bold"}>
+                  {isSindhi ? 'ڊيش بورڊ' : 'Dashboard'}
+                </span>
               </Link>
             )}
           </div>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Controls */}
           <div className="md:hidden flex items-center space-x-2">
             <button
               onClick={toggleLanguage}
-              className="px-2 py-1 text-xs font-bold rounded-md bg-brand-surface border border-brand-border text-brand-secondary hover:text-brand-primary hover:border-brand-accent transition-colors uppercase"
+              className="px-3 py-1 rounded-full bg-brand-surface border border-brand-border text-brand-secondary"
             >
-              {language === 'en' ? 'SD' : 'EN'}
-            </button>
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-full hover:bg-brand-surface transition-colors text-brand-secondary"
-            >
-              {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+              <span className={language === 'en' ? "font-sindhi text-sm" : "font-sans text-[10px] uppercase font-bold"}>
+                {language === 'en' ? 'سنڌي' : 'English'}
+              </span>
             </button>
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="text-brand-secondary hover:text-brand-primary"
+              className="text-brand-secondary p-1"
             >
               {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -107,7 +115,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Nav */}
+      {/* Mobile Nav Menu */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -123,33 +131,31 @@ export default function Navbar() {
                   to={item.path}
                   onClick={() => setIsOpen(false)}
                   className={cn(
-                    "block px-3 py-3 text-base font-medium rounded-xl transition-colors",
-                    location.pathname === item.path ? "text-brand-accent bg-brand-surface" : "text-brand-secondary hover:text-brand-primary hover:bg-brand-surface"
+                    "block px-3 py-3 rounded-xl transition-colors",
+                    location.pathname === item.path 
+                      ? "text-brand-accent bg-brand-surface" 
+                      : "text-brand-secondary hover:text-brand-primary hover:bg-brand-surface",
+                    isSindhi ? "font-sindhi text-2xl text-right" : "text-base font-medium"
                   )}
                 >
-                  {isSindhi ? item.nameSd : item.name}
+                  {isSindhi ? item.nameSindhi : item.name}
                 </Link>
               ))}
-              <div className="pt-4 px-3">
-                {user ? (
+              
+              {user && (
+                <div className="pt-4 px-3">
                   <Link
                     to="/dashboard"
                     onClick={() => setIsOpen(false)}
-                    className="block w-full px-4 py-4 bg-brand-accent text-white text-center font-bold rounded-xl flex items-center justify-center shadow-lg shadow-brand-accent/20"
+                    className="block w-full px-4 py-4 bg-brand-accent text-white text-center rounded-xl flex items-center justify-center shadow-lg"
                   >
                     <LayoutDashboard className="w-5 h-5 mr-2" />
-                    {isSindhi ? 'ڊيش بورڊ' : 'Dashboard'}
+                    <span className={isSindhi ? "font-sindhi text-xl" : "font-bold"}>
+                      {isSindhi ? 'ڊيش بورڊ' : 'Dashboard'}
+                    </span>
                   </Link>
-                ) : (
-                  <Link
-                    to="/auth"
-                    onClick={() => setIsOpen(false)}
-                    className="block w-full px-4 py-4 bg-brand-primary text-brand-bg text-center font-bold rounded-xl shadow-lg"
-                  >
-                    {isSindhi ? 'شروع ڪريو' : 'Get Started'}
-                  </Link>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -157,5 +163,3 @@ export default function Navbar() {
     </nav>
   );
 }
-
-import { AnimatePresence } from 'motion/react';

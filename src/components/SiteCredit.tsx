@@ -15,19 +15,32 @@ export default function SiteCredit({ variant = 'standard', className }: SiteCred
       initial={{ opacity: 0, y: 10 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.8, ease: "easeOut" }}
       className={cn(
         "max-w-3xl mx-auto text-center",
-        isSubtle ? "py-4 border-t border-brand-border/30 mt-8" : "py-12 px-4",
+        isSubtle ? "py-4 mt-4 border-t border-brand-border/20" : "py-8 px-4",
         className
       )}
     >
-      <p className={cn(
-        "font-sans leading-relaxed tracking-tight",
-        isSubtle ? "text-[10px] uppercase tracking-[0.2em] text-brand-secondary/40" : "text-sm md:text-base text-brand-secondary/60 italic"
-      )}>
-        Rajababar.com is an independent digital platform developed by Raja Babar using modern technologies and AI-assisted workflows.
-      </p>
+      <div className="flex flex-col gap-2">
+        {/* Sindhi Version - Using font-sindhi for MB Saremiqra */}
+        <p 
+          dir="rtl" 
+          className={cn(
+            "font-sindhi leading-relaxed",
+            isSubtle ? "text-sm text-brand-secondary/40" : "text-lg text-brand-secondary/70"
+          )}
+        >
+          راجا ٻٻر پاران جديد ٽيڪنالاجي ۽ AI جي مدد سان تيار ڪيل
+        </p>
+        
+        {/* English Version */}
+        <p className={cn(
+          "font-sans tracking-widest uppercase opacity-60",
+          isSubtle ? "text-[9px]" : "text-[11px]"
+        )}>
+          Developed by Raja Babar using modern tech & AI
+        </p>
+      </div>
     </motion.div>
   );
 }

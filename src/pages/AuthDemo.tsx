@@ -1,148 +1,138 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { SupabaseService } from '@/src/services/supabaseService';
-import type { User } from '@supabase/supabase-js';
-import { LogIn, LogOut, UserPlus, ShieldCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { BookOpen, Send, History, LayoutDashboard, PenTool } from 'lucide-react';
 
-export default function AuthDemo() {
-  const [user, setUser] = useState<User | null>(null);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
+export default function MemberDashboard() {
+  const [takhleeq, setTakhleeq] = useState('');
+  const [category, setCategory] = useState('Shairi');
+  const [title, setTitle] = useState('');
+  const [myEntries, setMyEntries] = useState([
+    { id: 1, title: 'Sindh Ji Saqafat', category: 'Tareekh', date: '2024-02-20' },
+    { id: 2, title: 'Ghazal - Yaad', category: 'Shairi', date: '2024-02-15' },
+  ]);
 
-  useEffect(() => {
-    SupabaseService.getCurrentUser().then(setUser);
-  }, []);
-
-  const handleSignUp = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    try {
-      await SupabaseService.signUp(email, password);
-      setMessage('Check your email for confirmation!');
-    } catch (err: any) {
-      setMessage(err.message);
-    } finally {
-      setLoading(false);
-    }
+    const newEntry = {
+      id: Date.now(),
+      title: title,
+      category: category,
+      date: new Date().toISOString().split('T')[0]
+    };
+    setMyEntries([newEntry, ...myEntries]);
+    setTitle('');
+    setTakhleeq('');
+    alert("Takhleeq submit ho gayi!");
   };
-
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const data = await SupabaseService.signIn(email, password);
-      setUser(data.user);
-      setMessage('Logged in successfully!');
-    } catch (err: any) {
-      setMessage(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSignOut = async () => {
-    await SupabaseService.signOut();
-    setUser(null);
-    setMessage('Logged out.');
-  };
-
-  if (user) {
-    return (
-      <div className="pt-32 pb-24 max-w-md mx-auto px-4">
-        <div className="p-8 rounded-3xl bg-brand-surface border border-brand-border text-center">
-          <ShieldCheck className="w-12 h-12 text-brand-accent mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Welcome back!</h2>
-          <p className="text-brand-secondary mb-6">{user.email}</p>
-          <button 
-            onClick={handleSignOut}
-            className="w-full py-3 bg-brand-bg border border-brand-border text-white font-bold rounded-xl hover:bg-brand-border transition-all flex items-center justify-center"
-          >
-            <LogOut className="mr-2 w-5 h-5" />
-            Sign Out
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="pt-32 pb-24 max-w-md mx-auto px-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="p-8 rounded-3xl bg-brand-surface border border-brand-border shadow-2xl"
-      >
-        <h2 className="text-2xl font-bold mb-6 text-center">Authentication</h2>
+    <div className="min-h-screen bg-brand-bg text-white p-4 md:p-8">
+      {/* Header */}
+      <div className="max-w-6xl mx-auto flex justify-between items-center mb-10">
+        <div>
+          <h1 className="text-3xl font-bold text-brand-accent">Member Portal</h1>
+          <p className="text-brand-secondary text-sm">Welcome back, Ahmed Ali</p>
+        </div>
+        <LayoutDashboard className="text-brand-accent w-8 h-8" />
+      </div>
+
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        <form className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-widest text-brand-secondary">Email</label>
-            <input 
-              type="email" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-brand-bg border border-brand-border focus:outline-none focus:border-brand-accent transition-colors"
-              placeholder="you@example.com"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-widest text-brand-secondary">Password</label>
-            <input 
-              type="password" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-brand-bg border border-brand-border focus:outline-none focus:border-brand-accent transition-colors"
-              placeholder="••••••••"
-            />
-          </div>
-          
-          {message && (
-            <p className="text-sm text-brand-accent text-center bg-brand-accent/10 py-2 rounded-lg">
-              {message}
-            </p>
-          )}
+        {/* Left Column: Submission Form */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="lg:col-span-2 space-y-6"
+        >
+          <div className="bg-brand-surface border border-brand-border p-6 rounded-3xl shadow-xl">
+            <div className="flex items-center mb-6 gap-2">
+              <PenTool className="text-brand-accent w-5 h-5" />
+              <h2 className="text-xl font-bold">Nayi Takhleeq Likhen</h2>
+            </div>
 
-          <div className="grid grid-cols-2 gap-4 pt-4">
-            <button 
-              onClick={handleSignIn}
-              disabled={loading}
-              className="py-3 bg-white text-black font-bold rounded-xl hover:bg-brand-secondary transition-all flex items-center justify-center disabled:opacity-50"
-            >
-              <LogIn className="mr-2 w-4 h-4" />
-              Login
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold uppercase text-brand-secondary mb-2 block">Unwan (Title)</label>
+                <input 
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 focus:border-brand-accent outline-none"
+                  placeholder="Apni takhleeq ka unwan likhen..."
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase text-brand-secondary mb-2 block">Topic / Category</label>
+                <select 
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 focus:border-brand-accent outline-none"
+                >
+                  <option>Shairi</option>
+                  <option>Tareekh</option>
+                  <option>Tanqeed</option>
+                  <option>Saqafat</option>
+                  <option>General</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase text-brand-secondary mb-2 block">Tehreer (Content)</label>
+                <textarea 
+                  value={takhleeq}
+                  onChange={(e) => setTakhleeq(e.target.value)}
+                  rows={8}
+                  className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 focus:border-brand-accent outline-none"
+                  placeholder="Yahan apni shairi ya mazmoon likhen..."
+                  required
+                />
+              </div>
+
+              <button 
+                type="submit"
+                className="w-full bg-brand-accent hover:bg-opacity-90 text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all"
+              >
+                <Send size={18} />
+                Submit Karain
+              </button>
+            </form>
+          </div>
+        </motion.div>
+
+        {/* Right Column: Record/History */}
+        <motion.div 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="space-y-6"
+        >
+          <div className="bg-brand-surface border border-brand-border p-6 rounded-3xl h-full">
+            <div className="flex items-center mb-6 gap-2">
+              <History className="text-brand-secondary w-5 h-5" />
+              <h2 className="text-xl font-bold">Mera Record</h2>
+            </div>
+
+            <div className="space-y-4">
+              {myEntries.map((item) => (
+                <div key={item.id} className="p-4 bg-brand-bg border border-brand-border rounded-2xl hover:border-brand-accent transition-colors cursor-pointer">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-[10px] bg-brand-accent/20 text-brand-accent px-2 py-1 rounded-md uppercase font-bold tracking-tighter">
+                      {item.category}
+                    </span>
+                    <span className="text-xs text-brand-secondary">{item.date}</span>
+                  </div>
+                  <h3 className="font-semibold text-white">{item.title}</h3>
+                </div>
+              ))}
+            </div>
+
+            <button className="w-full mt-6 py-3 text-brand-secondary border border-dashed border-brand-border rounded-xl hover:text-white transition-all">
+              View All History
             </button>
-            <button 
-              onClick={handleSignUp}
-              disabled={loading}
-              className="py-3 bg-brand-bg border border-brand-border text-white font-bold rounded-xl hover:bg-brand-border transition-all flex items-center justify-center disabled:opacity-50"
-            >
-              <UserPlus className="mr-2 w-4 h-4" />
-              Sign Up
-            </button>
           </div>
+        </motion.div>
 
-          <div className="relative py-4">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-brand-border"></div></div>
-            <div className="relative flex justify-center text-xs uppercase"><span className="bg-brand-surface px-2 text-brand-secondary">Or continue with</span></div>
-          </div>
-
-          <button 
-            type="button"
-            onClick={() => SupabaseService.signInWithGoogle()}
-            className="w-full py-3 bg-brand-bg border border-brand-border text-white font-bold rounded-xl hover:bg-brand-border transition-all flex items-center justify-center"
-          >
-            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-              <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-              <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
-              <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-            </svg>
-            Google
-          </button>
-        </form>
-      </motion.div>
+      </div>
     </div>
   );
 }
