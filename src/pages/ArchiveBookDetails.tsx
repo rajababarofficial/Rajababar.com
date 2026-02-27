@@ -65,7 +65,7 @@ export default function ArchiveBookDetails() {
     </div>
   );
   
-  if (!book) return <div className="text-center py-20 bg-brand-bg min-h-screen font-sindhi text-white">ڪتاب نه مليو.</div>;
+  if (!book) return <div className="text-center py-20 bg-brand-bg min-h-screen font-sindhi text-brand-primary">ڪتاب نه مليو.</div>;
 
   const archiveThumbnail = `https://archive.org/services/img/${book.identifier}`;
 
@@ -107,7 +107,7 @@ export default function ArchiveBookDetails() {
           </div>
 
           {/* Right: Details Section */}
-          <div className="flex-1 space-y-8 text-white">
+          <div className="flex-1 space-y-8 text-brand-primary">
             
             <span className="inline-block px-3 py-1 bg-brand-accent/10 text-brand-accent text-[10px] font-black uppercase tracking-widest rounded-md border border-brand-accent/20">
               Archive ID: {book.identifier}
@@ -115,7 +115,7 @@ export default function ArchiveBookDetails() {
 
             <div className="space-y-8">
               <div className="space-y-2">
-                <h1 className="font-sindhi text-4xl sm:text-5xl lg:text-6xl text-brand-primary leading-[1.3] text-white">
+                <h1 className="font-sindhi text-4xl sm:text-5xl lg:text-6xl text-brand-primary leading-[1.3] text-brand-primary">
                   {book["Title (Sindhi)"] || book["Title (English)"]}
                 </h1>
                 <p className="font-sindhi text-2xl text-brand-accent">
@@ -124,7 +124,7 @@ export default function ArchiveBookDetails() {
               </div>
 
               <div dir="ltr" className="space-y-1 border-l-2 border-brand-border/50 pl-4">
-                <h2 className="text-xl sm:text-2xl font-bold text-white/80 tracking-tight">
+                <h2 className="text-xl sm:text-2xl font-bold text-brand-primary/80 tracking-tight">
                   {book["Title (English)"]}
                 </h2>
                 <p className="text-sm sm:text-base text-brand-secondary italic uppercase tracking-wider">
@@ -139,7 +139,7 @@ export default function ArchiveBookDetails() {
                   <p className="text-[10px] text-brand-secondary uppercase font-bold tracking-tighter opacity-60 flex items-center gap-1">
                     <Building2 className="w-3 h-3" /> {isSindhi ? "پبلشر" : "Publisher"}
                   </p>
-                  <p dir="ltr" className={cn("text-sm font-bold text-white", isSindhi && "text-right md:text-left")}>
+                  <p dir="ltr" className={cn("text-sm font-bold text-brand-primary", isSindhi && "text-right md:text-left")}>
                     {book.Publisher || "N/A"}
                   </p>
                </div>
@@ -147,13 +147,13 @@ export default function ArchiveBookDetails() {
                   <p className="text-[10px] text-brand-secondary uppercase font-bold tracking-tighter opacity-60 flex items-center gap-1">
                     <Calendar className="w-3 h-3" /> {isSindhi ? "سال" : "Year"}
                   </p>
-                  <p className="text-sm font-bold text-white">{book.Year || "N/A"}</p>
+                  <p className="text-sm font-bold text-brand-primary">{book.Year || "N/A"}</p>
                </div>
                <div className="space-y-1 col-span-2 md:col-span-1">
                   <p className="text-[10px] text-brand-secondary uppercase font-bold tracking-tighter opacity-60 flex items-center gap-1">
                     <Globe2 className="w-3 h-3" /> {isSindhi ? "ٻولي" : "Language"}
                   </p>
-                  <p className="text-sm font-bold text-white uppercase">{book.Language || "Sindhi"}</p>
+                  <p className="text-sm font-bold text-brand-primary uppercase">{book.Language || "Sindhi"}</p>
                </div>
             </div>
 
@@ -164,7 +164,7 @@ export default function ArchiveBookDetails() {
                 target="_blank" 
                 rel="noopener noreferrer"
                 className={cn(
-                  "w-full h-16 bg-brand-accent text-white rounded-xl flex items-center justify-center gap-3 font-bold shadow-lg shadow-brand-accent/20 active:scale-95 transition-all text-lg hover:brightness-110",
+                  "w-full h-16 bg-brand-accent text-brand-primary rounded-xl flex items-center justify-center gap-3 font-bold shadow-lg shadow-brand-accent/20 active:scale-95 transition-all text-lg hover:brightness-110",
                   isSindhi && "font-sindhi text-2xl"
                 )}
               >
@@ -175,7 +175,7 @@ export default function ArchiveBookDetails() {
               <div className="grid grid-cols-2 gap-3">
                 <button 
                   onClick={() => handleShare('page')}
-                  className="flex items-center justify-center gap-2 h-14 bg-brand-surface border border-brand-border rounded-xl hover:border-brand-accent transition-all relative overflow-hidden text-xs font-bold text-white"
+                  className="flex items-center justify-center gap-2 h-14 bg-brand-surface border border-brand-border rounded-xl hover:border-brand-accent transition-all relative overflow-hidden text-xs font-bold text-brand-primary"
                 >
                   <AnimatePresence mode="wait">
                     {copiedType === 'page' ? (
@@ -195,7 +195,7 @@ export default function ArchiveBookDetails() {
                   href={`https://archive.org/details/${book.identifier}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 h-14 bg-brand-surface border border-brand-border rounded-xl hover:border-brand-accent transition-all text-xs font-bold text-white"
+                  className="flex items-center justify-center gap-2 h-14 bg-brand-surface border border-brand-border rounded-xl hover:border-brand-accent transition-all text-xs font-bold text-brand-primary"
                 >
                   <BookOpen className="w-4 h-4 text-brand-accent" />
                   <span className={isSindhi ? "font-sindhi text-lg" : ""}>{isSindhi ? "آن لائن پڙهو" : "Read Online"}</span>
