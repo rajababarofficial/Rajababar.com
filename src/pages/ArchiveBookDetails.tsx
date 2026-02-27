@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom"; // useNavigate add kiya
+import { useParams, useNavigate } from "react-router-dom"; // Link ki jagah useNavigate
 import Papa from "papaparse";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -12,51 +12,43 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  ExternalLink
+  BookOpen
 } from "lucide-react";
 import { useLanguage } from "@/src/context/LanguageContext";
 import { cn } from "@/src/utils/cn";
 
-export default function BookDetails() {
+export default function ArchiveBookDetails() {
   const { id } = useParams();
-  const navigate = useNavigate(); // Navigation handle karne ke liye
+  const navigate = useNavigate(); // History navigate karne ke liye
   const { isSindhi } = useLanguage();
   const [book, setBook] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [copiedType, setCopiedType] = useState<'page' | 'pdf' | null>(null);
+  const [copiedType, setCopiedType] = useState<'page' | 'archive' | null>(null);
 
   useEffect(() => {
-    const csvPath = "/lib.sindh.org/lib.sindh.org-BookList-Feb-26-2026 09.15.25.csv";
+    const csvPath = "/archive.org/sindh-library.csv";
     Papa.parse(csvPath, {
       header: true,
       download: true,
+      skipEmptyLines: true,
       complete: (results) => {
-        const found = results.data.find((row: any) => (row["#"] || row["id"]) === id);
+        const found = results.data.find((row: any) => 
+          String(row.identifier || row.id).trim() === String(id).trim()
+        );
         if (found) {
-          setBook({
-            title_en: found["Title (English)"],
-            title_sd: found["Title (Sindhi)"],
-            author_en: found["Author (English)"],
-            author_sd: found["Author (Sindhi)"],
-            year: found["Year"],
-            publisher: found["Publisher"],
-            category: found["Category"],
-            language: found["Language"],
-            link: found["Link"],
-            thumbnail: found["Thumbnail"]
-          });
+          setBook(found);
         }
         setLoading(false);
       }
     });
   }, [id]);
 
-  const handleShare = async (type: 'page' | 'pdf') => {
-    const url = type === 'page' ? window.location.href : book.link;
+  const handleShare = async (type: 'page' | 'archive') => {
+    const url = type === 'page' ? window.location.href : `https://archive.org/details/${book.identifier}`;
     if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
       try {
         await navigator.share({
-          title: isSindhi ? book.title_sd : book.title_en,
+          title: isSindhi ? book["Title (Sindhi)"] : book["Title (English)"],
           url: url
         });
       } catch (err) { console.log(err); }
@@ -75,16 +67,22 @@ export default function BookDetails() {
   
   if (!book) return <div className="text-center py-20 bg-brand-bg min-h-screen font-sindhi text-white">ڪتاب نه مليو.</div>;
 
+  const archiveThumbnail = `https://archive.org/services/img/${book.identifier}`;
+
   return (
     <div dir={isSindhi ? "rtl" : "ltr"} className="min-h-screen pt-24 pb-12 bg-brand-bg px-4 sm:px-6">
       <div className="max-w-6xl mx-auto">
         
-        {/* Updated Back Button: navigate(-1) ensures user returns to their previous scroll/page position */}
+        {/* Modern Back Button - navigate(-1) ensures position is kept */}
         <button 
           onClick={() => navigate(-1)} 
           className="inline-flex items-center gap-2 text-brand-secondary hover:text-brand-accent mb-8 transition-all group py-2"
         >
-          {isSindhi ? <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" /> : <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />}
+          {isSindhi ? (
+            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          ) : (
+            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+          )}
           <span className={cn("font-bold text-sm", isSindhi && "font-sindhi text-2xl")}>
             {isSindhi ? "واپس" : "Back"}
           </span>
@@ -97,41 +95,40 @@ export default function BookDetails() {
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="relative aspect-[3/4.5] sm:aspect-[3/4] rounded-[2rem] overflow-hidden shadow-xl bg-brand-surface border border-brand-border mx-auto max-w-[320px] lg:max-w-full"
+              className="relative aspect-[3/4.5] rounded-[2rem] overflow-hidden shadow-2xl bg-brand-surface border border-brand-border mx-auto max-w-[320px] lg:max-w-full"
             >
-              {book.thumbnail ? (
-                <img src={book.thumbnail} className="w-full h-full object-cover" alt="Cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center opacity-10 bg-brand-bg">
-                  <BookIcon className="w-24 h-24 text-white" />
-                </div>
-              )}
+              <img 
+                src={archiveThumbnail} 
+                className="w-full h-full object-cover" 
+                alt="Book Cover"
+                onError={(e) => (e.currentTarget.src = "https://via.placeholder.com/400x600?text=No+Cover")} 
+              />
             </motion.div>
           </div>
 
           {/* Right: Details Section */}
-          <div className="flex-1 space-y-8">
+          <div className="flex-1 space-y-8 text-white">
             
             <span className="inline-block px-3 py-1 bg-brand-accent/10 text-brand-accent text-[10px] font-black uppercase tracking-widest rounded-md border border-brand-accent/20">
-              {book.category}
+              Archive ID: {book.identifier}
             </span>
 
             <div className="space-y-8">
               <div className="space-y-2">
                 <h1 className="font-sindhi text-4xl sm:text-5xl lg:text-6xl text-brand-primary leading-[1.3] text-white">
-                  {book.title_sd}
+                  {book["Title (Sindhi)"] || book["Title (English)"]}
                 </h1>
                 <p className="font-sindhi text-2xl text-brand-accent">
-                  <span className="text-brand-secondary opacity-70">ليکڪ:</span> {book.author_sd}
+                  <span className="text-brand-secondary opacity-70">ليکڪ:</span> {book["Author (Sindhi)"] || book["Author (English)"]}
                 </p>
               </div>
 
               <div dir="ltr" className="space-y-1 border-l-2 border-brand-border/50 pl-4">
                 <h2 className="text-xl sm:text-2xl font-bold text-white/80 tracking-tight">
-                  {book.title_en}
+                  {book["Title (English)"]}
                 </h2>
                 <p className="text-sm sm:text-base text-brand-secondary italic uppercase tracking-wider">
-                  by {book.author_en}
+                  by {book["Author (English)"]}
                 </p>
               </div>
             </div>
@@ -143,31 +140,31 @@ export default function BookDetails() {
                     <Building2 className="w-3 h-3" /> {isSindhi ? "پبلشر" : "Publisher"}
                   </p>
                   <p dir="ltr" className={cn("text-sm font-bold text-white", isSindhi && "text-right md:text-left")}>
-                    {book.publisher}
+                    {book.Publisher || "N/A"}
                   </p>
                </div>
                <div className="space-y-1">
                   <p className="text-[10px] text-brand-secondary uppercase font-bold tracking-tighter opacity-60 flex items-center gap-1">
                     <Calendar className="w-3 h-3" /> {isSindhi ? "سال" : "Year"}
                   </p>
-                  <p className="text-sm font-bold text-white">{book.year}</p>
+                  <p className="text-sm font-bold text-white">{book.Year || "N/A"}</p>
                </div>
                <div className="space-y-1 col-span-2 md:col-span-1">
                   <p className="text-[10px] text-brand-secondary uppercase font-bold tracking-tighter opacity-60 flex items-center gap-1">
                     <Globe2 className="w-3 h-3" /> {isSindhi ? "ٻولي" : "Language"}
                   </p>
-                  <p className="text-sm font-bold text-white">{book.language}</p>
+                  <p className="text-sm font-bold text-white uppercase">{book.Language || "Sindhi"}</p>
                </div>
             </div>
 
-            {/* Action Buttons */}
+            {/* Actions */}
             <div className="space-y-4">
               <a 
-                href={book.link} 
+                href={`https://archive.org/download/${book.identifier}`} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className={cn(
-                  "w-full h-16 bg-brand-accent text-white rounded-xl flex items-center justify-center gap-3 font-bold shadow-lg shadow-brand-accent/20 active:scale-95 transition-all text-lg",
+                  "w-full h-16 bg-brand-accent text-white rounded-xl flex items-center justify-center gap-3 font-bold shadow-lg shadow-brand-accent/20 active:scale-95 transition-all text-lg hover:brightness-110",
                   isSindhi && "font-sindhi text-2xl"
                 )}
               >
@@ -194,23 +191,15 @@ export default function BookDetails() {
                   </AnimatePresence>
                 </button>
 
-                <button 
-                  onClick={() => handleShare('pdf')}
-                  className="flex items-center justify-center gap-2 h-14 bg-brand-surface border border-brand-border rounded-xl hover:border-brand-accent transition-all relative overflow-hidden text-xs font-bold text-white"
+                <a 
+                  href={`https://archive.org/details/${book.identifier}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 h-14 bg-brand-surface border border-brand-border rounded-xl hover:border-brand-accent transition-all text-xs font-bold text-white"
                 >
-                  <AnimatePresence mode="wait">
-                    {copiedType === 'pdf' ? (
-                      <motion.div key="c2" initial={{ y: 10 }} animate={{ y: 0 }} className="text-green-500 flex items-center gap-1">
-                        <Check className="w-4 h-4" /> {isSindhi ? "ڪاپي ٿي ويو" : "Copied"}
-                      </motion.div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <ExternalLink className="w-4 h-4 text-brand-accent" />
-                        <span className={isSindhi ? "font-sindhi text-lg" : ""}>{isSindhi ? "PDF لنڪ" : "Direct PDF"}</span>
-                      </div>
-                    )}
-                  </AnimatePresence>
-                </button>
+                  <BookOpen className="w-4 h-4 text-brand-accent" />
+                  <span className={isSindhi ? "font-sindhi text-lg" : ""}>{isSindhi ? "آن لائن پڙهو" : "Read Online"}</span>
+                </a>
               </div>
             </div>
 

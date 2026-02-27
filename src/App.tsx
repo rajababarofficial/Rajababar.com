@@ -7,7 +7,7 @@ import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from '@/src/components/layout/Navbar';
 import Footer from '@/src/components/layout/Footer';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion'; // 'motion/react' ki jagah 'framer-motion' standard hai
 import type { ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 
@@ -25,8 +25,13 @@ const AuthDemo = lazy(() => import('@/src/pages/AuthDemo'));
 const Dashboard = lazy(() => import('@/src/pages/Dashboard'));
 
 // Library Pages
-const Library = lazy(() => import('@/src/pages/Library'));
+const Library = lazy(() => import('@/src/pages/Library')); // All in one page
+const SindhLibrary = lazy(() => import('@/src/pages/SindhLibrary')); // Dedicated Sindh Page
+const ArchiveLibrary = lazy(() => import('@/src/pages/ArchiveLibrary')); // Dedicated Archive Page
+
+// Detail Pages
 const BookDetails = lazy(() => import('@/src/pages/BookDetails'));
+const ArchiveBookDetails = lazy(() => import('@/src/pages/ArchiveBookDetails'));
 
 // Tools Sub-pages
 const PdfMetadataExtractor = lazy(() => import('@/src/pages/tools/PdfMetadataExtractor'));
@@ -34,7 +39,6 @@ const PdfMetadataExtractor = lazy(() => import('@/src/pages/tools/PdfMetadataExt
 export default function App() {
   return (
     <Router>
-      {/* ScrollToTop hamesha Router ke andar aur Routes se pehle hona chahiye */}
       <ScrollToTop /> 
       
       <div className="min-h-screen flex flex-col">
@@ -47,9 +51,18 @@ export default function App() {
                 <Route path="/" element={<PageWrapper><Home /></PageWrapper>} />
                 <Route path="/about" element={<PageWrapper><About /></PageWrapper>} />
 
-                {/* Library Routes */}
+                {/* --- Library Routes --- */}
+                
+                {/* 1. Main Library (Both Sections) */}
                 <Route path="/library" element={<PageWrapper><Library /></PageWrapper>} />
+                
+                {/* 2. Sindh Library (Single Page) */}
+                <Route path="/sindh-library" element={<PageWrapper><SindhLibrary /></PageWrapper>} />
                 <Route path="/library/:id" element={<PageWrapper><BookDetails /></PageWrapper>} />
+
+                {/* 3. Archive Library (Single Page) */}
+                <Route path="/archive-library" element={<PageWrapper><ArchiveLibrary /></PageWrapper>} />
+                <Route path="/archive-library/:id" element={<PageWrapper><ArchiveBookDetails /></PageWrapper>} />
 
                 {/* Tools & Projects */}
                 <Route path="/projects" element={<PageWrapper><Projects /></PageWrapper>} />
@@ -71,9 +84,6 @@ export default function App() {
   );
 }
 
-/**
- * Loading Fallback component for Suspense
- */
 function LoadingFallback() {
   return (
     <div className="min-h-[60vh] flex items-center justify-center">
@@ -82,9 +92,6 @@ function LoadingFallback() {
   );
 }
 
-/**
- * PageWrapper provides consistent entry/exit animations for all pages
- */
 function PageWrapper({ children }: { children: ReactNode }) {
   return (
     <motion.div
