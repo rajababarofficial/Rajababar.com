@@ -73,7 +73,7 @@ export default function BookDetails() {
     </div>
   );
   
-  if (!book) return <div className="text-center py-20 bg-brand-bg min-h-screen font-sindhi text-white">ڪتاب نه مليو.</div>;
+  if (!book) return <div className="text-center py-20 bg-brand-bg min-h-screen font-sindhi text-brand-primary">ڪتاب نه مليو.</div>;
 
   return (
     <div dir={isSindhi ? "rtl" : "ltr"} className="min-h-screen pt-24 pb-12 bg-brand-bg px-4 sm:px-6">
@@ -103,7 +103,7 @@ export default function BookDetails() {
                 <img src={book.thumbnail} className="w-full h-full object-cover" alt="Cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center opacity-10 bg-brand-bg">
-                  <BookIcon className="w-24 h-24 text-white" />
+                  <BookIcon className="w-24 h-24 text-brand-primary" />
                 </div>
               )}
             </motion.div>
@@ -118,7 +118,7 @@ export default function BookDetails() {
 
             <div className="space-y-8">
               <div className="space-y-2">
-                <h1 className="font-sindhi text-4xl sm:text-5xl lg:text-6xl text-brand-primary leading-[1.3] text-white">
+                <h1 className="font-sindhi text-4xl sm:text-5xl lg:text-6xl text-brand-primary leading-[1.3] text-brand-primary">
                   {book.title_sd}
                 </h1>
                 <p className="font-sindhi text-2xl text-brand-accent">
@@ -127,7 +127,7 @@ export default function BookDetails() {
               </div>
 
               <div dir="ltr" className="space-y-1 border-l-2 border-brand-border/50 pl-4">
-                <h2 className="text-xl sm:text-2xl font-bold text-white/80 tracking-tight">
+                <h2 className="text-xl sm:text-2xl font-bold text-brand-primary/80 tracking-tight">
                   {book.title_en}
                 </h2>
                 <p className="text-sm sm:text-base text-brand-secondary italic uppercase tracking-wider">
@@ -142,7 +142,7 @@ export default function BookDetails() {
                   <p className="text-[10px] text-brand-secondary uppercase font-bold tracking-tighter opacity-60 flex items-center gap-1">
                     <Building2 className="w-3 h-3" /> {isSindhi ? "پبلشر" : "Publisher"}
                   </p>
-                  <p dir="ltr" className={cn("text-sm font-bold text-white", isSindhi && "text-right md:text-left")}>
+                  <p dir="ltr" className={cn("text-sm font-bold text-brand-primary", isSindhi && "text-right md:text-left")}>
                     {book.publisher}
                   </p>
                </div>
@@ -150,13 +150,13 @@ export default function BookDetails() {
                   <p className="text-[10px] text-brand-secondary uppercase font-bold tracking-tighter opacity-60 flex items-center gap-1">
                     <Calendar className="w-3 h-3" /> {isSindhi ? "سال" : "Year"}
                   </p>
-                  <p className="text-sm font-bold text-white">{book.year}</p>
+                  <p className="text-sm font-bold text-brand-primary">{book.year}</p>
                </div>
                <div className="space-y-1 col-span-2 md:col-span-1">
                   <p className="text-[10px] text-brand-secondary uppercase font-bold tracking-tighter opacity-60 flex items-center gap-1">
                     <Globe2 className="w-3 h-3" /> {isSindhi ? "ٻولي" : "Language"}
                   </p>
-                  <p className="text-sm font-bold text-white">{book.language}</p>
+                  <p className="text-sm font-bold text-brand-primary">{book.language}</p>
                </div>
             </div>
 
@@ -167,7 +167,7 @@ export default function BookDetails() {
                 target="_blank" 
                 rel="noopener noreferrer"
                 className={cn(
-                  "w-full h-16 bg-brand-accent text-white rounded-xl flex items-center justify-center gap-3 font-bold shadow-lg shadow-brand-accent/20 active:scale-95 transition-all text-lg",
+                  "w-full h-16 bg-brand-accent text-brand-primary rounded-xl flex items-center justify-center gap-3 font-bold shadow-lg shadow-brand-accent/20 active:scale-95 transition-all text-lg",
                   isSindhi && "font-sindhi text-2xl"
                 )}
               >
@@ -178,7 +178,7 @@ export default function BookDetails() {
               <div className="grid grid-cols-2 gap-3">
                 <button 
                   onClick={() => handleShare('page')}
-                  className="flex items-center justify-center gap-2 h-14 bg-brand-surface border border-brand-border rounded-xl hover:border-brand-accent transition-all relative overflow-hidden text-xs font-bold text-white"
+                  className="flex items-center justify-center gap-2 h-14 bg-brand-surface border border-brand-border rounded-xl hover:border-brand-accent transition-all relative overflow-hidden text-xs font-bold text-brand-primary"
                 >
                   <AnimatePresence mode="wait">
                     {copiedType === 'page' ? (
@@ -196,7 +196,7 @@ export default function BookDetails() {
 
                 <button 
                   onClick={() => handleShare('pdf')}
-                  className="flex items-center justify-center gap-2 h-14 bg-brand-surface border border-brand-border rounded-xl hover:border-brand-accent transition-all relative overflow-hidden text-xs font-bold text-white"
+                  className="flex items-center justify-center gap-2 h-14 bg-brand-surface border border-brand-border rounded-xl hover:border-brand-accent transition-all relative overflow-hidden text-xs font-bold text-brand-primary"
                 >
                   <AnimatePresence mode="wait">
                     {copiedType === 'pdf' ? (

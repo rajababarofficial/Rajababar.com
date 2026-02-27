@@ -91,18 +91,18 @@ export default function Library() {
         {/* TOP BAR WITH COUNTER & TABS */}
         <div className="glass p-6 rounded-[2rem] border border-brand-border/50 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex gap-4 w-full md:w-auto">
-            <button onClick={() => navigate('/sindh-library')} className="flex-1 px-6 py-3 bg-brand-surface border border-brand-border rounded-xl text-white font-bold hover:border-brand-accent transition-all flex items-center justify-center gap-2">
+            <button onClick={() => navigate('/sindh-library')} className="flex-1 px-6 py-3 bg-brand-surface border border-brand-border rounded-xl text-brand-primary font-bold hover:border-brand-accent transition-all flex items-center justify-center gap-2">
               <LibIcon className="w-4 h-4 text-brand-accent" />
               <span className={isSindhi ? "font-sindhi" : ""}>{isSindhi ? "سنڌ لائبريري" : "lib.sindh.org"}</span>
             </button>
-            <button onClick={() => navigate('/archive-library')} className="flex-1 px-6 py-3 bg-brand-surface border border-brand-border rounded-xl text-white font-bold hover:border-brand-accent transition-all flex items-center justify-center gap-2">
+            <button onClick={() => navigate('/archive-library')} className="flex-1 px-6 py-3 bg-brand-surface border border-brand-border rounded-xl text-brand-primary font-bold hover:border-brand-accent transition-all flex items-center justify-center gap-2">
               <Archive className="w-4 h-4 text-brand-accent" />
               <span className={isSindhi ? "font-sindhi" : ""}>{isSindhi ? "آرڪائيو لائبريري" : "Archive.org"}</span>
             </button>
           </div>
           <div className="px-6 py-3 bg-brand-accent/10 border border-brand-accent/20 rounded-full">
             <p className={cn("text-brand-accent font-bold", isSindhi && "font-sindhi")}>
-              {isSindhi ? "ڪُل ڪتاب:" : "Total Books:"} <span className="text-white ml-2">{allBooks.length.toLocaleString()}</span>
+              {isSindhi ? "ڪُل ڪتاب:" : "Total Books:"} <span className="text-brand-primary ml-2">{allBooks.length.toLocaleString()}</span>
             </p>
           </div>
         </div>
@@ -120,10 +120,10 @@ export default function Library() {
               >
                 <div className="aspect-[3/4.5] relative overflow-hidden bg-brand-bg">
                   <img src={book.img} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500" loading="lazy" />
-                  <div className="absolute top-4 right-4 px-2 py-1 bg-black/60 backdrop-blur-md rounded text-[10px] text-white font-bold">{book.source.toUpperCase()}</div>
+                  <div className="absolute top-4 right-4 px-2 py-1 bg-black/60 backdrop-blur-md rounded text-[10px] text-brand-primary font-bold">{book.source.toUpperCase()}</div>
                 </div>
                 <div className="p-5 flex flex-col flex-grow">
-                  <h3 className={cn("text-white font-bold text-sm mb-2 line-clamp-2", isSindhi && "font-sindhi text-lg")}>{book.displayTitle}</h3>
+                  <h3 className={cn("text-brand-primary font-bold text-sm mb-2 line-clamp-2", isSindhi && "font-sindhi text-lg")}>{book.displayTitle}</h3>
                   <p className={cn("text-brand-secondary text-xs mt-auto", isSindhi && "font-sindhi")}>{book.displayAuthor}</p>
                 </div>
               </div>
@@ -149,7 +149,7 @@ export default function Library() {
                 className={cn(
                   "w-12 h-12 rounded-xl font-bold transition-all shadow-lg",
                   currentPage === num 
-                    ? "bg-brand-accent text-white scale-110 shadow-brand-accent/20" 
+                    ? "bg-brand-accent text-brand-primary scale-110 shadow-brand-accent/20" 
                     : "bg-brand-surface text-brand-secondary border border-brand-border hover:border-brand-accent"
                 )}
               >
