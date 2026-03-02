@@ -147,8 +147,8 @@ export default function ArchiveBookDetails() {
                 <h2 className="text-xl sm:text-2xl font-bold text-brand-primary/80 tracking-tight">
                   {book["Title (English)"]}
                 </h2>
-                <p className="text-sm sm:text-base text-brand-secondary italic uppercase tracking-wider">
-                  by {book["Author (English)"]}
+                <p className="text-sm sm:text-base text-brand-secondary italic tracking-wider">
+                  By {book["Author (English)"]}
                 </p>
               </div>
             </div>

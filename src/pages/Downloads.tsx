@@ -41,7 +41,7 @@ export default function Downloads() {
 
   useEffect(() => {
     // Initial preview text based on language
-    setPreviewText(isSindhi ? "سنڌي ٻولي خوبصورت آھي، سنڌي ۾ ٽيسٽ متن" : "The quick brown fox jumps over the lazy dog");
+    setPreviewText(isSindhi ? "سانيَمِ سدائين ڪرِيين مٿي سنڌُ سڪارَ دوستَ تون دلدارَ عالَمُ سڀِ آبادُ ڪرين." : "The quick brown fox jumps over the lazy dog");
 
     const fetchFonts = async () => {
       try {
@@ -225,7 +225,7 @@ export default function Downloads() {
               </div>
               <button
                 className="px-6 py-3 bg-brand-surface border border-brand-border rounded-xl text-brand-primary text-sm font-bold hover:border-brand-accent transition-all flex items-center gap-2 whitespace-nowrap shadow-sm"
-                onClick={() => setPreviewText(isSindhi ? "سنڌي ٻولي خوبصورت آھي، سنڌي ۾ ٽيسٽ متن" : "The quick brown fox jumps over the lazy dog")}
+                onClick={() => setPreviewText(isSindhi ? "سانيَمِ سدائين ڪرِيين مٿي سنڌُ سڪارَ دوستَ تون دلدارَ عالَمُ سڀِ آبادُ ڪرين." : "The quick brown fox jumps over the lazy dog")}
               >
                 <Scale className="w-4 h-4" />
                 {isSindhi ? "اصل متن" : "Reset Text"}

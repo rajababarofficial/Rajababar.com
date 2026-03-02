@@ -149,8 +149,8 @@ export default function BookDetails() {
                 <h2 className="text-xl sm:text-2xl font-bold text-brand-primary/80 tracking-tight">
                   {book.title_en}
                 </h2>
-                <p className="text-sm sm:text-base text-brand-secondary italic uppercase tracking-wider">
-                  by {book.author_en}
+                <p className="text-sm sm:text-base text-brand-secondary italic tracking-wider">
+                  By {book.author_en}
                 </p>
               </div>
             </div>
