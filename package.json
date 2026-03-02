@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "generate-fonts": "tsx scripts/generate-font-metadata.ts",
-    "build": "npm run generate-fonts && vite build",
+    "generate-sitemap": "tsx scripts/generate-sitemap.ts",
+    "build": "npm run generate-fonts && npm run generate-sitemap && vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit"
