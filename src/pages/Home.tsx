@@ -12,7 +12,7 @@ export default function Home() {
   return (
     <div dir={isSindhi ? 'rtl' : 'ltr'}>
       <SEO
-        title={isSindhi ? 'سافٽويئر انجنيئر ۽ ٽيڪ عاشق' : 'Software Engineer & Tech Enthusiast'}
+        title={isSindhi ? 'سافٽويئر ۽ ٽيڪ' : 'Software Engineer & Tech Enthusiast'}
         description={isSindhi
           ? 'راجا ٻٻر: مفت سافٽويئر ٽولز، سنڌي پي ڊي ايف ڪتاب، ۽ اوپن سورس پروجيڪٽس دريافت ڪريو. هڪ پريميم ٽيڪ حب.'
           : 'Raja Babar: Discover free software tools, Sindhi PDF books, and open-source projects. A premium tech hub for everyone.'}
