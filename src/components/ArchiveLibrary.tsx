@@ -120,8 +120,16 @@ export default function ArchiveBooks({ csvPath }: ArchiveBooksProps) {
 
   const handleShare = async (book: ArchiveBook) => {
     const url = `${window.location.origin}/archive-library/${book.id}`;
-    if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-      try { await navigator.share({ title: book.title_en, url }); } catch (err) {}
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: book.title_en, url });
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          await navigator.clipboard.writeText(url);
+          setToast(isSindhi ? "لنڪ ڪاپي ڪئي وئي!" : "Link copied!");
+          setTimeout(() => setToast(null), 3000);
+        }
+      }
     } else {
       await navigator.clipboard.writeText(url);
       setToast(isSindhi ? "لنڪ ڪاپي ڪئي وئي!" : "Link copied!");
@@ -202,7 +210,7 @@ export default function ArchiveBooks({ csvPath }: ArchiveBooksProps) {
             {displayedBooks.map((book, idx) => (
               <motion.div key={book.id} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} className="group flex flex-col h-full bg-brand-surface border border-brand-border rounded-[2.5rem] overflow-hidden hover:border-brand-accent transition-all duration-500 relative">
                 <Link to={`/archive-library/${book.id}`} className="relative aspect-[3/4] overflow-hidden bg-brand-bg block">
-                  <img src={book.thumbnail} alt={book.title_en} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy" onError={(e) => {e.currentTarget.src = "https://via.placeholder.com/300x400?text=No+Cover"}} />
+                  <img src={book.thumbnail} alt={book.title_en} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy" onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/300x400?text=No+Cover" }} />
                   <div className={cn("absolute top-4 flex flex-wrap gap-2", isSindhi ? "right-4" : "left-4")}>
                     <span className="px-3 py-1 bg-brand-accent/90 text-white text-[10px] font-bold uppercase rounded-full border border-white/10">{book.category}</span>
                   </div>

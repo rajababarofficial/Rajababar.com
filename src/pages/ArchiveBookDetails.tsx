@@ -65,13 +65,19 @@ export default function ArchiveBookDetails() {
 
   const handleShare = async (type: 'page' | 'archive') => {
     const url = type === 'page' ? window.location.href : `https://archive.org/details/${book.identifier}`;
-    if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+    if (navigator.share) {
       try {
         await navigator.share({
           title: isSindhi ? book["Title (Sindhi)"] : book["Title (English)"],
           url: url
         });
-      } catch (err) { console.log(err); }
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          await navigator.clipboard.writeText(url);
+          setCopiedType(type);
+          setTimeout(() => setCopiedType(null), 2000);
+        }
+      }
     } else {
       await navigator.clipboard.writeText(url);
       setCopiedType(type);

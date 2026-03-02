@@ -72,13 +72,19 @@ export default function BookDetails() {
 
   const handleShare = async (type: 'page' | 'pdf') => {
     const url = type === 'page' ? window.location.href : book.link;
-    if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+    if (navigator.share) {
       try {
         await navigator.share({
           title: isSindhi ? book.title_sd : book.title_en,
           url: url
         });
-      } catch (err) { console.log(err); }
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          await navigator.clipboard.writeText(url);
+          setCopiedType(type);
+          setTimeout(() => setCopiedType(null), 2000);
+        }
+      }
     } else {
       await navigator.clipboard.writeText(url);
       setCopiedType(type);

@@ -128,14 +128,26 @@ export default function Books({ csvPath = "/lib.sindh.org/lib.sindh.org-BookList
       url: `${window.location.origin}/library/${book.id}`,
     };
 
-    if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-      try { await navigator.share(shareData); } catch (err) { if ((err as Error).name !== 'AbortError') console.error('Error sharing:', err); }
-    } else {
+    if (navigator.share) {
       try {
-        await navigator.clipboard.writeText(shareData.url);
-        setToast(isSindhi ? "لنڪ ڪاپي ڪئي وئي!" : "Link copied to clipboard!");
-        setTimeout(() => setToast(null), 3000);
-      } catch (err) { console.error('Failed to copy:', err); }
+        await navigator.share(shareData);
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          await copyToClipboard(shareData.url);
+        }
+      }
+    } else {
+      await copyToClipboard(shareData.url);
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setToast(isSindhi ? "لنڪ ڪاپي ڪئي وئي!" : "Link copied to clipboard!");
+      setTimeout(() => setToast(null), 3000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
     }
   };
 
@@ -214,7 +226,7 @@ export default function Books({ csvPath = "/lib.sindh.org/lib.sindh.org-BookList
           <motion.div key="grid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {displayedBooks.map((book, idx) => (
               <motion.div key={book.id} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: idx * 0.05 }} className="group flex flex-col h-full bg-brand-surface border border-brand-border rounded-[2.5rem] overflow-hidden hover:border-brand-accent transition-all duration-500 hover:shadow-2xl relative">
-                
+
                 {/* Book Image with Link */}
                 <Link to={`/library/${book.id}`} className="relative aspect-[3/4] overflow-hidden bg-brand-bg block">
                   {book.thumbnail ? <img src={book.thumbnail} alt={isSindhi ? book.title_sd : book.title_en} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center text-brand-border opacity-20"><BookIcon className="w-16 h-16" /></div>}
