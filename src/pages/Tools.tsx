@@ -9,8 +9,9 @@ import {
   Building2,
   Globe
 } from 'lucide-react';
-import { cn } from '@/src/utils/cn';
 import { useLanguage } from '@/src/context/LanguageContext';
+import { cn } from '@/src/utils/cn';
+import SEO from '@/src/components/layout/SEO';
 
 type ToolCategory = 'All' | 'PDF Tools' | 'Office Tools';
 
@@ -71,10 +72,16 @@ export default function Tools() {
   }, [searchQuery, activeCategory, toolsList]);
 
   return (
-    <div 
-      dir={isSindhi ? 'rtl' : 'ltr'} 
+    <div
+      dir={isSindhi ? 'rtl' : 'ltr'}
       className="pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 bg-brand-bg min-h-screen"
     >
+      <SEO
+        title={isSindhi ? "ٽولز هب" : "Professional Tools Hub"}
+        description={isSindhi
+          ? "راجا ٻٻر پاران مهيا ڪيل پروفيشنل ويب ٽولز: پي ڊي ايف ميٽاڊيٽا ايڪسٽريڪٽر، آفيس مئنيجمينٽ، ۽ گهڻو ڪجهه."
+          : "Explore high-performance digital utilities and web tools designed by Raja Babar, including PDF Metadata Extractor and Office Management System."}
+      />
       {/* Header */}
       <div className={cn("mb-12 text-center", isSindhi ? "md:text-right" : "md:text-left")}>
         <motion.h1
@@ -247,7 +254,7 @@ function ToolCard({ tool, index, isSindhi }: { tool: Tool; index: number; isSind
         )}>
           {isSindhi ? tool.categorySd : tool.category}
         </span>
-        
+
         {tool.status !== 'Coming Soon' ? (
           <div className={cn(
             "text-sm font-bold text-brand-primary group-hover:text-brand-accent transition-colors flex items-center",

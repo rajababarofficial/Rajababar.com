@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Download, Type, Terminal, Folder, ChevronDown, ChevronRight, Github, Search, Loader2, Scale, FileText } from 'lucide-react';
 import PageHeader from '@/src/components/PageHeader';
 import { useLanguage } from '@/src/context/LanguageContext';
+import SEO from '@/src/components/layout/SEO';
 
 interface FontItem {
   name: string;
@@ -101,6 +102,12 @@ export default function Downloads() {
 
   return (
     <div className="pt-24 pb-20">
+      <SEO
+        title={isSindhi ? "ڊائون لوڊس" : "Software & Font Downloads"}
+        description={isSindhi
+          ? "سنڌي فونٽس، پي ڊي ايف ٽولز، ۽ ڪيبورڊ سافٽويئرز مفت ڊائون لوڊ ڪريو. راجا ٻٻر جي خاص مجموعي تان."
+          : "Download free Sindhi fonts, PDF tools, and keyboard software. Exclusive resources and custom tools provided by Raja Babar."}
+      />
       <PageHeader
         title={isSindhi ? "ڊائون لوڊس" : "Downloads"}
         description={isSindhi
@@ -330,7 +337,7 @@ function SectionWrapper({ id, title, icon, isOpen, toggle, children }: { id: str
   );
 }
 
-function FontPanelCard({ font, previewText, isSindhi }: { font: FontItem, previewText: string, isSindhi: boolean }) {
+function FontPanelCard({ font, previewText, isSindhi }: { font: FontItem, previewText: string, isSindhi: boolean, key?: any }) {
   const downloadCount = Math.floor(Math.random() * 50000) + 1000;
 
   return (

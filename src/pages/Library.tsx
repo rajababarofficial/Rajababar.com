@@ -5,11 +5,12 @@ import { BookOpen, Archive, Library as LibIcon, Book as BookPlaceholder, Chevron
 import PageHeader from '@/src/components/PageHeader';
 import { useLanguage } from '@/src/context/LanguageContext';
 import { cn } from '@/src/utils/cn';
+import SEO from '@/src/components/layout/SEO';
 
 export default function Library() {
   const { isSindhi } = useLanguage();
   const navigate = useNavigate();
-  
+
   const [allBooks, setAllBooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -67,7 +68,7 @@ export default function Library() {
     const maxVisiblePages = 7;
     let start = Math.max(1, currentPage - 3);
     let end = Math.min(totalPages, start + maxVisiblePages - 1);
-    
+
     if (end - start < maxVisiblePages - 1) {
       start = Math.max(1, end - maxVisiblePages + 1);
     }
@@ -80,6 +81,12 @@ export default function Library() {
 
   return (
     <div dir={isSindhi ? 'rtl' : 'ltr'} className="pt-24 pb-20 bg-brand-bg min-h-screen">
+      <SEO
+        title={isSindhi ? "ڊجيٽل لائبريري" : "Digital Library"}
+        description={isSindhi
+          ? "سنڌ جي تمام وڏي لائبريرين جو گڏيل مجموعو. هزارين سنڌي ڪتاب مفت ڊائون لوڊ ڪريو."
+          : "The largest collection of Sindh's digital libraries. Download thousands of free Sindhi and English PDF books curated by Raja Babar."}
+      />
       <PageHeader
         title={isSindhi ? "ڊجيٽل لائبريري" : "Digital Library"}
         description={isSindhi ? "سنڌ جي تمام وڏي لائبريرين جو گڏيل مجموعو." : "The largest collection of Sindh's digital libraries."}
@@ -87,7 +94,7 @@ export default function Library() {
       />
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 space-y-12">
-        
+
         {/* TOP BAR WITH COUNTER & TABS */}
         <div className="glass p-6 rounded-[2rem] border border-brand-border/50 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex gap-4 w-full md:w-auto">
@@ -110,11 +117,11 @@ export default function Library() {
         {/* 4-COLUMN GRID (3 Rows of 4 = 12 Books) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {loading ? (
-             Array.from({ length: 12 }).map((_, i) => <div key={i} className="aspect-[3/4.5] bg-brand-surface/50 animate-pulse rounded-2xl" />)
+            Array.from({ length: 12 }).map((_, i) => <div key={i} className="aspect-[3/4.5] bg-brand-surface/50 animate-pulse rounded-2xl" />)
           ) : (
             currentBooks.map((book, i) => (
-              <div 
-                key={`${book.source}-${i}`} 
+              <div
+                key={`${book.source}-${i}`}
                 onClick={() => navigate(book.source === 'sindh' ? `/library/${book.id}` : `/archive-library/${book.id}`)}
                 className="group bg-brand-surface rounded-[2rem] border border-brand-border overflow-hidden hover:border-brand-accent transition-all shadow-xl flex flex-col h-full cursor-pointer hover:-translate-y-2"
               >
@@ -134,7 +141,7 @@ export default function Library() {
         {/* NUMERIC PAGINATION (1 2 3 ... 7 Style) */}
         {!loading && totalPages > 1 && (
           <div className="flex flex-wrap justify-center items-center gap-2 mt-12 py-8 border-t border-brand-border/30">
-            <button 
+            <button
               disabled={currentPage === 1}
               onClick={() => { setCurrentPage(prev => prev - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
               className="p-3 text-brand-secondary hover:text-brand-accent disabled:opacity-20 transition-colors"
@@ -148,8 +155,8 @@ export default function Library() {
                 onClick={() => { setCurrentPage(num); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                 className={cn(
                   "w-12 h-12 rounded-xl font-bold transition-all shadow-lg",
-                  currentPage === num 
-                    ? "bg-brand-accent text-brand-primary scale-110 shadow-brand-accent/20" 
+                  currentPage === num
+                    ? "bg-brand-accent text-brand-primary scale-110 shadow-brand-accent/20"
                     : "bg-brand-surface text-brand-secondary border border-brand-border hover:border-brand-accent"
                 )}
               >
@@ -157,7 +164,7 @@ export default function Library() {
               </button>
             ))}
 
-            <button 
+            <button
               disabled={currentPage === totalPages}
               onClick={() => { setCurrentPage(prev => prev + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
               className="p-3 text-brand-secondary hover:text-brand-accent disabled:opacity-20 transition-colors"

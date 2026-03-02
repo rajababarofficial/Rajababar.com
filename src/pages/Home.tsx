@@ -4,12 +4,19 @@ import { ArrowRight, Sparkles, Building2, ExternalLink, FileSearch } from 'lucid
 import { Link } from 'react-router-dom';
 import SiteCredit from '@/src/components/SiteCredit';
 import { useLanguage } from '@/src/context/LanguageContext';
+import SEO from '@/src/components/layout/SEO';
 
 export default function Home() {
   const { isSindhi } = useLanguage();
 
   return (
     <div dir={isSindhi ? 'rtl' : 'ltr'}>
+      <SEO
+        title={isSindhi ? 'سافٽويئر انجنيئر ۽ ٽيڪ عاشق' : 'Software Engineer & Tech Enthusiast'}
+        description={isSindhi
+          ? 'راجا ٻٻر: مفت سافٽويئر ٽولز، سنڌي پي ڊي ايف ڪتاب، ۽ اوپن سورس پروجيڪٽس دريافت ڪريو. هڪ پريميم ٽيڪ حب.'
+          : 'Raja Babar: Discover free software tools, Sindhi PDF books, and open-source projects. A premium tech hub for everyone.'}
+      />
 
       {/* ================= HERO SECTION ================= */}
       <section className="relative h-screen w-full flex items-center justify-center overflow-hidden">
@@ -40,9 +47,8 @@ export default function Home() {
             </h1>
 
             <div
-              className={`text-lg md:text-xl text-brand-secondary font-medium mb-10 leading-relaxed space-y-4 ${
-                isSindhi ? 'text-right font-sindhi' : 'text-center'
-              }`}
+              className={`text-lg md:text-xl text-brand-secondary font-medium mb-10 leading-relaxed space-y-4 ${isSindhi ? 'text-right font-sindhi' : 'text-center'
+                }`}
             >
               {isSindhi ? (
                 <p>
@@ -57,9 +63,8 @@ export default function Home() {
 
             {/* Buttons */}
             <div
-              className={`flex flex-col sm:flex-row items-center justify-center gap-4 ${
-                isSindhi ? 'sm:flex-row-reverse' : ''
-              }`}
+              className={`flex flex-col sm:flex-row items-center justify-center gap-4 ${isSindhi ? 'sm:flex-row-reverse' : ''
+                }`}
             >
               <Link
                 to="/tools"
@@ -67,11 +72,10 @@ export default function Home() {
               >
                 {isSindhi ? 'منهنجا ٽولز ڏسو' : 'Explore My Tools'}
                 <ArrowRight
-                  className={`ms-2 w-5 h-5 transition-transform ${
-                    isSindhi
+                  className={`ms-2 w-5 h-5 transition-transform ${isSindhi
                       ? 'rotate-180 group-hover:-translate-x-1'
                       : 'group-hover:translate-x-1'
-                  }`}
+                    }`}
                 />
               </Link>
 
@@ -191,9 +195,8 @@ function ProjectCard({
         >
           {isSindhi ? 'لائيو ڏسو' : 'Try Live Demo'}
           <ArrowRight
-            className={`ms-2 w-5 h-5 ${
-              isSindhi ? 'rotate-180' : ''
-            }`}
+            className={`ms-2 w-5 h-5 ${isSindhi ? 'rotate-180' : ''
+              }`}
           />
         </a>
       ) : (
@@ -203,9 +206,8 @@ function ProjectCard({
         >
           {isSindhi ? 'ٽول کوليو' : 'Open Tool'}
           <ArrowRight
-            className={`ms-2 w-5 h-5 ${
-              isSindhi ? 'rotate-180' : ''
-            }`}
+            className={`ms-2 w-5 h-5 ${isSindhi ? 'rotate-180' : ''
+              }`}
           />
         </Link>
       )}

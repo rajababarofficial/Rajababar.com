@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
 import SiteCredit from '@/src/components/SiteCredit';
 import { useLanguage } from '@/src/context/LanguageContext';
+import SEO from '@/src/components/layout/SEO';
 
 export default function About() {
   const { isSindhi } = useLanguage();
@@ -10,6 +11,12 @@ export default function About() {
       dir={isSindhi ? 'rtl' : 'ltr'}
       className="pt-32 pb-24 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8"
     >
+      <SEO
+        title={isSindhi ? "منهنجي باري ۾" : "About the Creator"}
+        description={isSindhi
+          ? "راجا ٻٻر بابت ڄاڻو: هڪ ٽيڪ عاشق جيڪو سنڌي ڪميونٽي لاءِ مفت ڊجيٽل اوزار ۽ وسيلا فراهم ڪري ٿو."
+          : "Learn more about Raja Babar, a tech enthusiast dedicated to providing free digital tools, software, and resources for everyone."}
+      />
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
 
         {/* ========= HEADING ========= */}
@@ -19,9 +26,8 @@ export default function About() {
 
         {/* ========= CONTENT ========= */}
         <div
-          className={`max-w-none text-brand-secondary text-lg leading-relaxed space-y-6 ${
-            isSindhi ? 'text-right font-sindhi' : ''
-          }`}
+          className={`max-w-none text-brand-secondary text-lg leading-relaxed space-y-6 ${isSindhi ? 'text-right font-sindhi' : ''
+            }`}
         >
 
           {isSindhi ? (

@@ -3,17 +3,24 @@ import { motion } from 'motion/react';
 import { Mail, MessageSquare, MapPin, Send } from 'lucide-react';
 import { useLanguage } from '@/src/context/LanguageContext';
 import { cn } from '@/src/utils/cn';
+import SEO from '@/src/components/layout/SEO';
 
 export default function Contact() {
   const { isSindhi } = useLanguage();
 
   return (
-    <div 
-      dir={isSindhi ? 'rtl' : 'ltr'} 
+    <div
+      dir={isSindhi ? 'rtl' : 'ltr'}
       className="pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
     >
+      <SEO
+        title={isSindhi ? "رابطو ڪريو" : "Contact Raja Babar"}
+        description={isSindhi
+          ? "راجا ٻٻر سان رابطو ڪريو: پروجيڪٽس، شراڪت، يا ڪنهن به سوال لاءِ هتي ميسيج موڪليو."
+          : "Get in touch with Raja Babar for project inquiries, partnerships, or any technical questions. Send a message directly."}
+      />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-        
+
         {/* Left Side: Info */}
         <motion.div
           initial={{ opacity: 0, x: isSindhi ? 20 : -20 }}
@@ -29,26 +36,26 @@ export default function Contact() {
             "text-brand-secondary text-lg mb-12",
             isSindhi ? "font-sindhi leading-relaxed" : ""
           )}>
-            {isSindhi 
+            {isSindhi
               ? 'ڇا توهان جي ذهن ۾ ڪو پروجيڪٽ آهي يا ڪنهن شراڪت بابت ڳالهائڻ چاهيو ٿا؟ مان هميشه نون موقعن ۽ دلچسپ گفتگو لاءِ تيار آهيان.'
               : "Have a project in mind or want to discuss a potential partnership? I'm always open to new opportunities and interesting conversations."
             }
           </p>
 
           <div className="space-y-8">
-            <ContactInfo 
+            <ContactInfo
               icon={<Mail className="w-6 h-6 text-brand-accent" />}
               label={isSindhi ? 'اي ميل' : 'Email'}
               value="contact@rajababar.com"
               isSindhi={isSindhi}
             />
-            <ContactInfo 
+            <ContactInfo
               icon={<MessageSquare className="w-6 h-6 text-brand-accent" />}
               label={isSindhi ? 'سوشل ميڊيا' : 'Social'}
               value="@rajababarofficial"
               isSindhi={isSindhi}
             />
-            <ContactInfo 
+            <ContactInfo
               icon={<MapPin className="w-6 h-6 text-brand-accent" />}
               label={isSindhi ? 'هند' : 'Location'}
               value={isSindhi ? 'ڄامشورو، سنڌ.' : 'Jamshoro, Sindh.'}
@@ -72,8 +79,8 @@ export default function Contact() {
                 )}>
                   {isSindhi ? 'نالو' : 'Name'}
                 </label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   className={cn(
                     "w-full px-4 py-3 rounded-xl bg-brand-bg border border-brand-border focus:outline-none focus:border-brand-accent transition-colors",
                     isSindhi && "font-sindhi"
@@ -88,8 +95,8 @@ export default function Contact() {
                 )}>
                   {isSindhi ? 'اي ميل' : 'Email'}
                 </label>
-                <input 
-                  type="email" 
+                <input
+                  type="email"
                   className="w-full px-4 py-3 rounded-xl bg-brand-bg border border-brand-border focus:outline-none focus:border-brand-accent transition-colors"
                   placeholder="email@example.com"
                 />
@@ -102,8 +109,8 @@ export default function Contact() {
               )}>
                 {isSindhi ? 'موضوع' : 'Subject'}
               </label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 className={cn(
                   "w-full px-4 py-3 rounded-xl bg-brand-bg border border-brand-border focus:outline-none focus:border-brand-accent transition-colors",
                   isSindhi && "font-sindhi"
@@ -118,7 +125,7 @@ export default function Contact() {
               )}>
                 {isSindhi ? 'پيغام' : 'Message'}
               </label>
-              <textarea 
+              <textarea
                 rows={5}
                 className={cn(
                   "w-full px-4 py-3 rounded-xl bg-brand-bg border border-brand-border focus:outline-none focus:border-brand-accent transition-colors resize-none",
