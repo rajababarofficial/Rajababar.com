@@ -1,5 +1,8 @@
 {
-  "name": "Rajababar.com",
-  "description": "Personal brand and future SaaS platform for premium tech solutions and digital tools.",
-  "requestFramePermissions": []
+  "name": "Raja Babar",
+  "short_name": "R.B.",
+  "icons": [...],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#09090b"
 }
