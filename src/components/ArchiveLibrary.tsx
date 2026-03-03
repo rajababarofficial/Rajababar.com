@@ -20,6 +20,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/src/context/LanguageContext";
 import { cn } from "@/src/utils/cn";
+import ShareButton from "./ShareButton";
 
 interface ArchiveBook {
   id: string; // Archive Identifier
@@ -118,24 +119,6 @@ export default function ArchiveBooks({ csvPath }: ArchiveBooksProps) {
   const handlePrevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
   const handleNextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
 
-  const handleShare = async (book: ArchiveBook) => {
-    const url = `${window.location.origin}/archive-library/${book.id}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: book.title_en, url });
-      } catch (err) {
-        if ((err as Error).name !== 'AbortError') {
-          await navigator.clipboard.writeText(url);
-          setToast(isSindhi ? "لنڪ ڪاپي ڪئي وئي!" : "Link copied!");
-          setTimeout(() => setToast(null), 3000);
-        }
-      }
-    } else {
-      await navigator.clipboard.writeText(url);
-      setToast(isSindhi ? "لنڪ ڪاپي ڪئي وئي!" : "Link copied!");
-      setTimeout(() => setToast(null), 3000);
-    }
-  };
 
   if (loading) {
     return (
@@ -239,7 +222,11 @@ export default function ArchiveBooks({ csvPath }: ArchiveBooksProps) {
                     <a href={`https://archive.org/details/${book.id}`} target="_blank" rel="noopener noreferrer" className={cn("flex-1 px-6 py-3 bg-brand-accent text-white rounded-2xl flex items-center justify-center gap-2 text-sm font-bold shadow-lg shadow-brand-accent/20 active:scale-95 transition-all", isSindhi && "font-sindhi text-lg")}>
                       <Download className="w-4 h-4" />{isSindhi ? "ڊائون لوڊ" : "Download"}
                     </a>
-                    <button onClick={() => handleShare(book)} className="p-3 bg-brand-surface border border-brand-border hover:border-brand-accent rounded-2xl text-brand-secondary active:scale-95 transition-all"><Share2 className="w-5 h-5" /></button>
+                    <ShareButton
+                      title={isSindhi ? book.title_sd : book.title_en}
+                      text={`${isSindhi ? 'هي ڪتاب ڏسو' : 'Check out this book'}: ${isSindhi ? book.title_sd : book.title_en} by ${isSindhi ? book.author_sd : book.author_en}`}
+                      url={`/archive-library/${book.id}`}
+                    />
                   </div>
                 </div>
               </motion.div>
@@ -275,7 +262,11 @@ export default function ArchiveBooks({ csvPath }: ArchiveBooksProps) {
                       <td className="p-6 text-right">
                         <div className="flex items-center justify-end gap-3">
                           <a href={`https://archive.org/details/${book.id}`} target="_blank" className="px-4 py-2 bg-brand-accent text-white rounded-xl text-xs font-bold">{isSindhi ? "ڊائون لوڊ" : "Download"}</a>
-                          <button onClick={() => handleShare(book)} className="p-2 border border-brand-border rounded-xl text-brand-secondary hover:text-brand-accent transition-all"><Share2 className="w-4 h-4" /></button>
+                          <ShareButton
+                            title={isSindhi ? book.title_sd : book.title_en}
+                            text={`${isSindhi ? 'هي ڪتاب ڏسو' : 'Check out this book'}: ${isSindhi ? book.title_sd : book.title_en} by ${isSindhi ? book.author_sd : book.author_en}`}
+                            url={`/archive-library/${book.id}`}
+                          />
                         </div>
                       </td>
                     </tr>

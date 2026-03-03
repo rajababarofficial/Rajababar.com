@@ -20,6 +20,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/src/context/LanguageContext";
 import { cn } from "@/src/utils/cn";
+import ShareButton from "./ShareButton";
 
 interface Book {
   id: string;
@@ -121,35 +122,6 @@ export default function Books({ csvPath = "/lib.sindh.org/lib.sindh.org-BookList
   const handlePrevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
   const handleNextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
 
-  const handleShare = async (book: Book) => {
-    const shareData = {
-      title: isSindhi ? book.title_sd : book.title_en,
-      text: `${isSindhi ? 'هي ڪتاب ڏسو' : 'Check out this book'}: ${isSindhi ? book.title_sd : book.title_en} by ${isSindhi ? book.author_sd : book.author_en}`,
-      url: `${window.location.origin}/library/${book.id}`,
-    };
-
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (err) {
-        if ((err as Error).name !== 'AbortError') {
-          await copyToClipboard(shareData.url);
-        }
-      }
-    } else {
-      await copyToClipboard(shareData.url);
-    }
-  };
-
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setToast(isSindhi ? "لنڪ ڪاپي ڪئي وئي!" : "Link copied to clipboard!");
-      setTimeout(() => setToast(null), 3000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-    }
-  };
 
   if (loading) {
     return (
@@ -264,7 +236,11 @@ export default function Books({ csvPath = "/lib.sindh.org/lib.sindh.org-BookList
                     <a href={book.link} target="_blank" rel="noopener noreferrer" className={cn("flex-1 px-6 py-3 bg-brand-accent hover:bg-brand-accent/90 text-white rounded-2xl flex items-center justify-center gap-2 text-sm font-bold shadow-lg shadow-brand-accent/20 active:scale-95 transition-all", isSindhi && "font-sindhi text-lg")}>
                       <Download className="w-4 h-4" />{isSindhi ? "ڊائون لوڊ" : "Download"}
                     </a>
-                    <button onClick={() => handleShare(book)} className="p-3 bg-brand-surface border border-brand-border hover:border-brand-accent rounded-2xl text-brand-secondary hover:text-brand-accent active:scale-95 transition-all"><Share2 className="w-5 h-5" /></button>
+                    <ShareButton
+                      title={isSindhi ? book.title_sd : book.title_en}
+                      text={`${isSindhi ? 'هي ڪتاب ڏسو' : 'Check out this book'}: ${isSindhi ? book.title_sd : book.title_en} by ${isSindhi ? book.author_sd : book.author_en}`}
+                      url={`/library/${book.id}`}
+                    />
                   </div>
                 </div>
               </motion.div>
@@ -305,7 +281,11 @@ export default function Books({ csvPath = "/lib.sindh.org/lib.sindh.org-BookList
                           <a href={book.link} target="_blank" rel="noopener noreferrer" className={cn("px-4 py-2 bg-brand-accent/10 hover:bg-brand-accent text-brand-accent hover:text-white rounded-xl text-xs font-bold transition-all shadow-sm", isSindhi && "font-sindhi text-sm")}>
                             {isSindhi ? "ڊائون لوڊ" : "Download"}
                           </a>
-                          <button onClick={() => handleShare(book)} className="p-2 bg-brand-surface border border-brand-border hover:border-brand-accent rounded-xl text-brand-secondary hover:text-brand-accent transition-all"><Share2 className="w-4 h-4" /></button>
+                          <ShareButton
+                            title={isSindhi ? book.title_sd : book.title_en}
+                            text={`${isSindhi ? 'هي ڪتاب ڏسو' : 'Check out this book'}: ${isSindhi ? book.title_sd : book.title_en} by ${isSindhi ? book.author_sd : book.author_en}`}
+                            url={`/library/${book.id}`}
+                          />
                         </div>
                       </td>
                     </tr>

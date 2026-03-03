@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/src/context/LanguageContext";
 import { cn } from "@/src/utils/cn";
+import ShareButton from "@/src/components/ShareButton";
 
 export default function BookDetails() {
   const { id } = useParams();
@@ -70,27 +71,6 @@ export default function BookDetails() {
     });
   }, [id, isSindhi]);
 
-  const handleShare = async (type: 'page' | 'pdf') => {
-    const url = type === 'page' ? window.location.href : book.link;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: isSindhi ? book.title_sd : book.title_en,
-          url: url
-        });
-      } catch (err) {
-        if ((err as Error).name !== 'AbortError') {
-          await navigator.clipboard.writeText(url);
-          setCopiedType(type);
-          setTimeout(() => setCopiedType(null), 2000);
-        }
-      }
-    } else {
-      await navigator.clipboard.writeText(url);
-      setCopiedType(type);
-      setTimeout(() => setCopiedType(null), 2000);
-    }
-  };
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-brand-bg">
@@ -201,41 +181,24 @@ export default function BookDetails() {
               </a>
 
               <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => handleShare('page')}
-                  className="flex items-center justify-center gap-2 h-14 bg-brand-surface border border-brand-border rounded-xl hover:border-brand-accent transition-all relative overflow-hidden text-xs font-bold text-brand-primary"
-                >
-                  <AnimatePresence mode="wait">
-                    {copiedType === 'page' ? (
-                      <motion.div key="c1" initial={{ y: 10 }} animate={{ y: 0 }} className="text-green-500 flex items-center gap-1">
-                        <Check className="w-4 h-4" /> {isSindhi ? "ڪاپي ٿي ويو" : "Copied"}
-                      </motion.div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <Share2 className="w-4 h-4 text-brand-accent" />
-                        <span className={isSindhi ? "font-sindhi text-lg" : ""}>{isSindhi ? "پيج شيئر" : "Share Page"}</span>
-                      </div>
-                    )}
-                  </AnimatePresence>
-                </button>
+                <ShareButton
+                  title={isSindhi ? book.title_sd : book.title_en}
+                  text={`${isSindhi ? 'هي ڪتاب ڏسو' : 'Check out this book'}: ${isSindhi ? book.title_sd : book.title_en} by ${isSindhi ? book.author_sd : book.author_en}`}
+                  url={window.location.pathname}
+                  variant="outline"
+                  className="w-full"
+                  label={isSindhi ? "پيج شيئر" : "Share Page"}
+                />
 
-                <button
-                  onClick={() => handleShare('pdf')}
-                  className="flex items-center justify-center gap-2 h-14 bg-brand-surface border border-brand-border rounded-xl hover:border-brand-accent transition-all relative overflow-hidden text-xs font-bold text-brand-primary"
-                >
-                  <AnimatePresence mode="wait">
-                    {copiedType === 'pdf' ? (
-                      <motion.div key="c2" initial={{ y: 10 }} animate={{ y: 0 }} className="text-green-500 flex items-center gap-1">
-                        <Check className="w-4 h-4" /> {isSindhi ? "ڪاپي ٿي ويو" : "Copied"}
-                      </motion.div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <ExternalLink className="w-4 h-4 text-brand-accent" />
-                        <span className={isSindhi ? "font-sindhi text-lg" : ""}>{isSindhi ? "PDF لنڪ" : "Direct PDF"}</span>
-                      </div>
-                    )}
-                  </AnimatePresence>
-                </button>
+                <ShareButton
+                  title={isSindhi ? book.title_sd : book.title_en}
+                  text={`${isSindhi ? 'هي ڪتاب ڊائون لوڊ ڪريو' : 'Download this book'}: ${isSindhi ? book.title_sd : book.title_en}`}
+                  url={book.link}
+                  variant="outline"
+                  className="w-full"
+                  isPDF={true}
+                  label={isSindhi ? "PDF لنڪ" : "Direct PDF"}
+                />
               </div>
             </div>
 

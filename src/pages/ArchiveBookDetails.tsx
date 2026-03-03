@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/src/context/LanguageContext";
 import { cn } from "@/src/utils/cn";
+import ShareButton from "@/src/components/ShareButton";
 
 export default function ArchiveBookDetails() {
   const { id } = useParams();
@@ -63,27 +64,6 @@ export default function ArchiveBookDetails() {
     });
   }, [id, isSindhi]);
 
-  const handleShare = async (type: 'page' | 'archive') => {
-    const url = type === 'page' ? window.location.href : `https://archive.org/details/${book.identifier}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: isSindhi ? book["Title (Sindhi)"] : book["Title (English)"],
-          url: url
-        });
-      } catch (err) {
-        if ((err as Error).name !== 'AbortError') {
-          await navigator.clipboard.writeText(url);
-          setCopiedType(type);
-          setTimeout(() => setCopiedType(null), 2000);
-        }
-      }
-    } else {
-      await navigator.clipboard.writeText(url);
-      setCopiedType(type);
-      setTimeout(() => setCopiedType(null), 2000);
-    }
-  };
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-brand-bg">
@@ -199,23 +179,14 @@ export default function ArchiveBookDetails() {
               </a>
 
               <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => handleShare('page')}
-                  className="flex items-center justify-center gap-2 h-14 bg-brand-surface border border-brand-border rounded-xl hover:border-brand-accent transition-all relative overflow-hidden text-xs font-bold text-brand-primary"
-                >
-                  <AnimatePresence mode="wait">
-                    {copiedType === 'page' ? (
-                      <motion.div key="c1" initial={{ y: 10 }} animate={{ y: 0 }} className="text-green-500 flex items-center gap-1">
-                        <Check className="w-4 h-4" /> {isSindhi ? "ڪاپي ٿي ويو" : "Copied"}
-                      </motion.div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <Share2 className="w-4 h-4 text-brand-accent" />
-                        <span className={isSindhi ? "font-sindhi text-lg" : ""}>{isSindhi ? "پيج شيئر" : "Share Page"}</span>
-                      </div>
-                    )}
-                  </AnimatePresence>
-                </button>
+                <ShareButton
+                  title={isSindhi ? (book["Title (Sindhi)"] || book["Title (English)"]) : book["Title (English)"]}
+                  text={`${isSindhi ? 'هي ڪتاب ڏسو' : 'Check out this book'}: ${isSindhi ? (book["Title (Sindhi)"] || book["Title (English)"]) : book["Title (English)"]} by ${isSindhi ? (book["Author (Sindhi)"] || book["Author (English)"]) : book["Author (English)"]}`}
+                  url={window.location.pathname}
+                  variant="outline"
+                  className="w-full"
+                  label={isSindhi ? "پيج شيئر" : "Share Page"}
+                />
 
                 <a
                   href={`https://archive.org/details/${book.identifier}`}
