@@ -7,7 +7,7 @@ import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from '@/src/components/layout/Navbar';
 import Footer from '@/src/components/layout/Footer';
-import { motion, AnimatePresence } from 'framer-motion'; // 'motion/react' ki jagah 'framer-motion' standard hai
+import { motion, AnimatePresence } from 'framer-motion';
 import type { ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 
@@ -28,6 +28,7 @@ const Dashboard = lazy(() => import('@/src/pages/Dashboard'));
 const Library = lazy(() => import('@/src/pages/Library')); // All in one page
 const SindhLibrary = lazy(() => import('@/src/pages/SindhLibrary')); // Dedicated Sindh Page
 const ArchiveLibrary = lazy(() => import('@/src/pages/ArchiveLibrary')); // Dedicated Archive Page
+const Books = lazy(() => import('@/src/pages/Books')); // <--- Naya SQLite Page
 
 // Detail Pages
 const BookDetails = lazy(() => import('@/src/pages/BookDetails'));
@@ -56,11 +57,14 @@ export default function App() {
                 {/* 1. Main Library (Both Sections) */}
                 <Route path="/library" element={<PageWrapper><Library /></PageWrapper>} />
                 
-                {/* 2. Sindh Library (Single Page) */}
+                {/* 2. New Digital Library (SQLite Based) */}
+                <Route path="/books" element={<PageWrapper><Books /></PageWrapper>} />
+                
+                {/* 3. Sindh Library (Single Page) */}
                 <Route path="/sindh-library" element={<PageWrapper><SindhLibrary /></PageWrapper>} />
                 <Route path="/library/:id" element={<PageWrapper><BookDetails /></PageWrapper>} />
 
-                {/* 3. Archive Library (Single Page) */}
+                {/* 4. Archive Library (Single Page) */}
                 <Route path="/archive-library" element={<PageWrapper><ArchiveLibrary /></PageWrapper>} />
                 <Route path="/archive-library/:id" element={<PageWrapper><ArchiveBookDetails /></PageWrapper>} />
 
