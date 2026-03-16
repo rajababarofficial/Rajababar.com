@@ -1,7 +1,13 @@
+"use client";
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Search, Filter, Book as BookIcon, ChevronLeft, ChevronRight, Loader2, X, Globe, Calendar, Building, Tag } from 'lucide-react';
+import { 
+  BookOpen, Search, Filter, Book as BookIcon, 
+  ChevronLeft, ChevronRight, LayoutGrid, List as ListIcon,
+  Settings2, Building, Calendar, Tag, Globe, Library as LibraryIcon, MoreHorizontal
+} from 'lucide-react';
 import PageHeader from '@/src/components/PageHeader';
 import { useLanguage } from '@/src/context/LanguageContext';
 import { cn } from '@/src/utils/cn';
@@ -12,165 +18,140 @@ export default function Library() {
   const { isSindhi } = useLanguage();
   const navigate = useNavigate();
 
-  // Data States
+  // --- Initial States (Memory se load karne ke liye) ---
+  const [searchTerm, setSearchTerm] = useState(() => {
+    return typeof window !== 'undefined' ? sessionStorage.getItem('lib_search') || '' : '';
+  });
+  
+  const [currentPage, setCurrentPage] = useState(() => {
+    return typeof window !== 'undefined' ? Number(sessionStorage.getItem('lib_page')) || 1 : 1;
+  });
+
+  const [filters, setFilters] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('lib_filters');
+      return saved ? JSON.parse(saved) : { category: '', language: '', year: '', publisher: '', source: '' };
+    }
+    return { category: '', language: '', year: '', publisher: '', source: '' };
+  });
+
   const [books, setBooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
-  
-  // Filter Options (Dynamic from DB)
-  const [options, setOptions] = useState({
-    categories: [] as string[],
-    languages: [] as string[],
-    years: [] as string[],
-    publishers: [] as string[]
-  });
-
-  // Active Filter States
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [filters, setFilters] = useState({
-    category: '',
-    language: '',
-    year: '',
-    publisher: ''
-  });
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
+  const [showColumnSettings, setShowColumnSettings] = useState(false);
+  
+  const [visibleColumns, setVisibleColumns] = useState({
+    icon: false, titleEn: true, titleSd: true, year: true, 
+    category: true, publisher: false, language: false, sourceName: true
+  });
 
+  const [options, setOptions] = useState({ categories: [], languages: [], years: [], publishers: [], sources: [] });
   const itemsPerPage = 12;
 
-  // 1. Load Dynamic Filter Options once
-// 1. Load and Sort Options from DB
-useEffect(() => {
-  const loadOptions = async () => {
-    try {
-      const db = await getDatabase();
-      
-      const getDistinct = (col: string, order: 'ASC' | 'DESC' = 'ASC') => {
-        const query = `
-          SELECT DISTINCT ${col} 
-          FROM Books 
-          WHERE ${col} IS NOT NULL AND ${col} != '' AND ${col} != 'null'
-          ORDER BY ${col} ${order}
-        `;
-        const res = db.exec(query);
-        return res.length > 0 ? res[0].values.map(v => String(v[0])) : [];
-      };
+  // --- Save to Session Storage whenever states change ---
+  useEffect(() => {
+    sessionStorage.setItem('lib_search', searchTerm);
+    sessionStorage.setItem('lib_page', String(currentPage));
+    sessionStorage.setItem('lib_filters', JSON.stringify(filters));
+  }, [searchTerm, currentPage, filters]);
 
-      setOptions({
-        categories: getDistinct('category', 'ASC'), // A to Z
-        languages: getDistinct('language', 'ASC'),   // A to Z
-        years: getDistinct('year', 'DESC'),        // 2026 to 1900
-        publishers: getDistinct('publisher', 'ASC') // A to Z
-      });
-    } catch (err) {
-      console.error("Filter Load Error:", err);
-    }
-  };
-  loadOptions();
-}, []);
+  // 1. Load Filter Options
+  useEffect(() => {
+    const loadOptions = async () => {
+      try {
+        const db = await getDatabase();
+        const getDistinct = (col: string) => {
+          const res = db.exec(`SELECT DISTINCT ${col} FROM Books WHERE ${col} IS NOT NULL AND ${col} != '' ORDER BY ${col} ASC`);
+          return res.length > 0 ? res[0].values.map(v => String(v[0])) : [];
+        };
+        setOptions({
+          categories: getDistinct('category'),
+          languages: getDistinct('language'),
+          years: getDistinct('year').sort((a,b) => Number(b) - Number(a)),
+          publishers: getDistinct('publisher'),
+          sources: getDistinct('source_name')
+        });
+      } catch (err) { console.error(err); }
+    };
+    loadOptions();
+  }, []);
 
-// 2. Filter Search Logic (Type to search inside filter)
-// Har filter ke liye ek local search state
-const [filterSearch, setFilterSearch] = useState({
-  cat: '',
-  pub: '',
-  yr: ''
-});
-
-// UI mein Publisher Filter ka misal (Searchable):
-<div className="space-y-2 relative">
-  <label className="text-[10px] uppercase font-bold text-brand-secondary flex items-center gap-2">
-    <Building size={12}/> {isSindhi ? "پبلشر" : "Publisher"}
-  </label>
-  
-  {/* Search Input inside Filter */}
-  <input 
-    type="text"
-    placeholder={isSindhi ? "پبلشر ڳوليو..." : "Search Publisher..."}
-    className="w-full bg-brand-bg/50 border border-brand-border p-2 text-xs rounded-t-xl outline-none focus:border-brand-accent"
-    value={filterSearch.pub}
-    onChange={(e) => setFilterSearch(prev => ({ ...prev, pub: e.target.value }))}
-  />
-
-  <select 
-    className="w-full bg-brand-bg border border-brand-border p-3 rounded-b-xl text-brand-primary outline-none focus:border-brand-accent h-32" 
-    size={5} // Isse dropdown hamesha khula nazar ayega search ke niche
-    value={filters.publisher} 
-    onChange={(e) => updateFilter('publisher', e.target.value)}
-  >
-    <option value="">{isSindhi ? "سڀ پبلشر" : "All Publishers"}</option>
-    {options.publishers
-      .filter(p => p.toLowerCase().includes(filterSearch.pub.toLowerCase()))
-      .map((p, idx) => (
-        <option key={idx} value={p}>{p}</option>
-      ))
-    }
-  </select>
-</div>
-
-  // 2. Main Fetch Function
+  // 2. Fetch Logic (Thumbnails + Filters)
   const fetchBooks = useCallback(async () => {
     try {
       setLoading(true);
       const db = await getDatabase();
       const offset = (currentPage - 1) * itemsPerPage;
       const safeSearch = searchTerm.replace(/'/g, "''").trim();
-
+      
       let whereClauses = [];
-      if (safeSearch) {
-        whereClauses.push(`(title_en LIKE '%${safeSearch}%' OR title_sd LIKE '%${safeSearch}%' OR author_en LIKE '%${safeSearch}%' OR author_sd LIKE '%${safeSearch}%')`);
-      }
+      if (safeSearch) whereClauses.push(`(title_en LIKE '%${safeSearch}%' OR title_sd LIKE '%${safeSearch}%' OR author_en LIKE '%${safeSearch}%' OR author_sd LIKE '%${safeSearch}%')`);
       if (filters.category) whereClauses.push(`category = '${filters.category.replace(/'/g, "''")}'`);
       if (filters.language) whereClauses.push(`language = '${filters.language.replace(/'/g, "''")}'`);
-      if (filters.year) whereClauses.push(`year = '${filters.year.replace(/'/g, "''")}'`);
+      if (filters.year) whereClauses.push(`year = '${filters.year}'`);
       if (filters.publisher) whereClauses.push(`publisher = '${filters.publisher.replace(/'/g, "''")}'`);
+      if (filters.source) whereClauses.push(`source_name = '${filters.source.replace(/'/g, "''")}'`);
 
       const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-
-      // Count total matching
-      const countResult = db.exec(`SELECT COUNT(*) FROM Books ${whereSql}`);
-      setTotalCount(countResult[0].values[0][0] as number);
-
-      // Fetch Paginated Data
-      const dataQuery = `SELECT * FROM Books ${whereSql} ORDER BY id DESC LIMIT ${itemsPerPage} OFFSET ${offset}`;
-      const dataResult = db.exec(dataQuery);
       
+      const countRes = db.exec(`SELECT COUNT(*) FROM Books ${whereSql}`);
+      setTotalCount(countRes[0].values[0][0] as number);
+
+      const dataResult = db.exec(`SELECT * FROM Books ${whereSql} ORDER BY id DESC LIMIT ${itemsPerPage} OFFSET ${offset}`);
       if (dataResult.length > 0) {
         const rows = dataResult[0].values.map((row: any) => {
           const obj: any = {};
           dataResult[0].columns.forEach((col: string, i: number) => { obj[col] = row[i]; });
-
-          // Archive.org Fallback
-          if (!obj.link) obj.link = obj.identifier ? `https://archive.org/details/${obj.identifier}` : "#";
-          if (!obj.thumbnail) obj.thumbnail = obj.identifier ? `https://archive.org/services/img/${obj.identifier}` : null;
-          
+          if (!obj.thumbnail && obj.identifier) {
+            obj.thumbnail = `https://archive.org/services/img/${obj.identifier}`;
+          }
           return obj;
         });
         setBooks(rows);
-      } else {
-        setBooks([]);
-      }
-    } catch (error) {
-      console.error("DB Error:", error);
-    } finally {
-      setLoading(false);
-    }
+      } else { setBooks([]); }
+    } catch (e) { console.error(e); } finally { setLoading(false); }
   }, [currentPage, searchTerm, filters]);
 
-  useEffect(() => {
-    fetchBooks();
-  }, [fetchBooks]);
+  useEffect(() => { fetchBooks(); }, [fetchBooks]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 400, behavior: 'smooth' });
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setFilters({ category: '', language: '', year: '', publisher: '', source: '' });
+    setCurrentPage(1);
+    sessionStorage.removeItem('lib_search');
+    sessionStorage.removeItem('lib_filters');
+    sessionStorage.removeItem('lib_page');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
-  const updateFilter = (key: keyof typeof filters, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setCurrentPage(1);
+  const getPageNumbers = () => {
+    const pages = [];
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push('...');
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (currentPage < totalPages - 2) pages.push('...');
+      pages.push(totalPages);
+    }
+    return pages;
   };
 
   return (
-    <div dir={isSindhi ? 'rtl' : 'ltr'} className="pt-24 pb-20 bg-brand-bg min-h-screen">
-      <SEO title={isSindhi ? "ڊجيٽل لائبريري" : "Digital Library"} description="Explore 50,000+ digital books." />
+    <div className="pt-24 pb-20 bg-brand-bg min-h-screen">
+      <SEO title={isSindhi ? "ڊجيٽل لائبريري" : "Digital Library"} />
       
       <PageHeader
         title={isSindhi ? "ڊجيٽل لائبريري" : "Digital Library"}
@@ -178,201 +159,186 @@ const [filterSearch, setFilterSearch] = useState({
         icon={<BookOpen className="w-12 h-12 text-brand-accent" />}
       />
 
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 space-y-6">
-        
-        {/* SEARCH & DYNAMIC FILTERS BAR */}
-        <div className="glass p-6 rounded-[2.5rem] border border-brand-border/50 shadow-2xl bg-brand-surface/20 backdrop-blur-xl">
+      {/* --- CONTROL BAR --- */}
+      <section className="max-w-7xl mx-auto px-4 mt-12 space-y-4" dir="ltr">
+        <div className="flex justify-between items-center mb-2 px-6">
+          <div className="flex items-center gap-2 bg-brand-accent/10 text-brand-accent px-4 py-2 rounded-full border border-brand-accent/20">
+            <LibraryIcon size={16}/>
+            <span className="text-sm font-bold tracking-widest uppercase">
+              Total Result: <span className="text-brand-primary">{totalCount}</span>
+            </span>
+          </div>
+        </div>
+
+        <div className="glass p-6 rounded-[2.5rem] border border-brand-border/50 bg-brand-surface/20 shadow-2xl backdrop-blur-xl">
           <div className="flex flex-col md:flex-row gap-4 items-center">
-            <div className="relative flex-1 w-full">
+            <div className="relative flex-1 w-full text-left">
               <input 
                 type="text"
-                placeholder={isSindhi ? "ڪتاب، ليکڪ يا موضوع ڳوليو..." : "Search title, author or topic..."}
-                className={cn("w-full px-6 py-4 bg-brand-bg/50 border border-brand-border rounded-2xl outline-none focus:border-brand-accent text-brand-primary transition-all", isSindhi && "font-sindhi text-lg pr-12", !isSindhi && "pl-12")}
+                placeholder="Search database..."
+                className="w-full pl-12 pr-6 py-4 bg-brand-bg/50 border border-brand-border rounded-2xl outline-none focus:border-brand-accent text-brand-primary"
                 value={searchTerm}
                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
               />
-              <Search className={cn("absolute top-1/2 -translate-y-1/2 text-brand-secondary", isSindhi ? "right-4" : "left-4")} size={22} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-secondary" size={20} />
             </div>
 
-            <button 
-              onClick={() => setShowFilters(!showFilters)}
-              className={cn("px-6 py-4 rounded-2xl border transition-all flex items-center gap-2 font-bold", showFilters ? "bg-brand-accent text-white border-brand-accent" : "bg-brand-surface text-brand-primary border-brand-border hover:border-brand-accent")}
-            >
-              <Filter size={20} />
-              <span className={isSindhi ? "font-sindhi" : ""}>{isSindhi ? "فلٽر" : "Filters"}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setShowColumnSettings(!showColumnSettings)} className={cn("p-4 rounded-2xl border transition-all flex items-center gap-2", showColumnSettings ? "bg-brand-accent text-white" : "bg-brand-surface border-brand-border text-brand-primary")}>
+                <Settings2 size={20}/> <span className="text-xs font-bold uppercase">Display</span>
+              </button>
+              <button onClick={() => setShowFilters(!showFilters)} className={cn("p-4 rounded-2xl border transition-all", showFilters ? "bg-brand-accent text-white" : "bg-brand-surface border-brand-border text-brand-primary")}><Filter size={20}/></button>
+              <div className="flex bg-brand-bg/50 p-1 border border-brand-border rounded-2xl">
+                <button onClick={() => setViewMode('grid')} className={cn("p-2 rounded-xl", viewMode === 'grid' ? "bg-brand-accent text-white shadow-lg" : "text-brand-secondary")}><LayoutGrid size={20}/></button>
+                <button onClick={() => setViewMode('list')} className={cn("p-2 rounded-xl", viewMode === 'list' ? "bg-brand-accent text-white shadow-lg" : "text-brand-secondary")}><ListIcon size={20}/></button>
+              </div>
+            </div>
           </div>
 
           <AnimatePresence>
-            {showFilters && (
-              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-brand-border/50">
-                  
-                  {/* Category */}
-                  <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-bold text-brand-secondary flex items-center gap-2"><Tag size={12}/> {isSindhi ? "ڪيٽيگري" : "Category"}</label>
-                    <select className="w-full bg-brand-bg border border-brand-border p-3 rounded-xl text-brand-primary outline-none focus:border-brand-accent" value={filters.category} onChange={(e) => updateFilter('category', e.target.value)}>
-                      <option value="">{isSindhi ? "سڀ ڪيٽيگريون" : "All Categories"}</option>
-                      {options.categories.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-
-                  {/* Language */}
-                  <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-bold text-brand-secondary flex items-center gap-2"><Globe size={12}/> {isSindhi ? "ٻولي" : "Language"}</label>
-                    <select className="w-full bg-brand-bg border border-brand-border p-3 rounded-xl text-brand-primary outline-none focus:border-brand-accent" value={filters.language} onChange={(e) => updateFilter('language', e.target.value)}>
-                      <option value="">{isSindhi ? "سڀ ٻوليون" : "All Languages"}</option>
-                      {options.languages.map(l => <option key={l} value={l}>{l}</option>)}
-                    </select>
-                  </div>
-
-                  {/* Year */}
-                  <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-bold text-brand-secondary flex items-center gap-2"><Calendar size={12}/> {isSindhi ? "سال" : "Year"}</label>
-                    <select className="w-full bg-brand-bg border border-brand-border p-3 rounded-xl text-brand-primary outline-none focus:border-brand-accent" value={filters.year} onChange={(e) => updateFilter('year', e.target.value)}>
-                      <option value="">{isSindhi ? "سڀ سال" : "All Years"}</option>
-                      {options.years.map(y => <option key={y} value={y}>{y}</option>)}
-                    </select>
-                  </div>
-
-                  {/* Publisher */}
-                  <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-bold text-brand-secondary flex items-center gap-2"><Building size={12}/> {isSindhi ? "پبلشر" : "Publisher"}</label>
-                    <select className="w-full bg-brand-bg border border-brand-border p-3 rounded-xl text-brand-primary outline-none focus:border-brand-accent" value={filters.publisher} onChange={(e) => updateFilter('publisher', e.target.value)}>
-                      <option value="">{isSindhi ? "سڀ پبلشر" : "All Publishers"}</option>
-                      {options.publishers.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                  </div>
-
+            {showColumnSettings && (
+              <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
+                <div className="flex flex-wrap gap-2 mt-6 p-4 bg-brand-bg/40 rounded-2xl border border-brand-border/40">
+                  {Object.keys(visibleColumns).map((col) => (
+                    <button key={col} onClick={() => setVisibleColumns(prev => ({ ...prev, [col]: !prev[col] }))} className={cn("px-4 py-2 rounded-full text-[10px] font-bold border transition-all uppercase", visibleColumns[col] ? "bg-brand-accent/20 border-brand-accent text-brand-accent" : "bg-brand-surface border-brand-border text-brand-secondary")}>
+                      {col}
+                    </button>
+                  ))}
                 </div>
-                <button onClick={() => { setFilters({category:'', language:'', year:'', publisher:''}); setSearchTerm(''); }} className="mt-4 text-xs text-brand-accent hover:underline flex items-center gap-1">
-                  <X size={14}/> {isSindhi ? "فلٽر ختم ڪريو" : "Clear All Filters"}
-                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden mt-6 pt-6 border-t border-brand-border/30">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  <select className="bg-brand-bg border border-brand-border p-3 rounded-xl text-xs text-brand-primary outline-none" value={filters.category} onChange={e => { setFilters(f => ({...f, category: e.target.value})); setCurrentPage(1); }}>
+                    <option value="">Category</option>
+                    {options.categories.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <select className="bg-brand-bg border border-brand-border p-3 rounded-xl text-xs text-brand-primary outline-none" value={filters.publisher} onChange={e => { setFilters(f => ({...f, publisher: e.target.value})); setCurrentPage(1); }}>
+                    <option value="">Publisher</option>
+                    {options.publishers.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                  <select className="bg-brand-bg border border-brand-border p-3 rounded-xl text-xs text-brand-primary outline-none" value={filters.year} onChange={e => { setFilters(f => ({...f, year: e.target.value})); setCurrentPage(1); }}>
+                    <option value="">Year</option>
+                    {options.years.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                  <select className="bg-brand-bg border border-brand-border p-3 rounded-xl text-xs text-brand-primary outline-none" value={filters.source} onChange={e => { setFilters(f => ({...f, source: e.target.value})); setCurrentPage(1); }}>
+                    <option value="">Source</option>
+                    {options.sources.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <select className="bg-brand-bg border border-brand-border p-3 rounded-xl text-xs text-brand-primary outline-none" value={filters.language} onChange={e => { setFilters(f => ({...f, language: e.target.value})); setCurrentPage(1); }}>
+                    <option value="">Language</option>
+                    {options.languages.map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                </div>
+                {/* Clear Filter Button Added Here */}
+                <div className="flex justify-end mt-6 pt-4 border-t border-brand-border/20">
+                  <button 
+                    onClick={clearFilters}
+                    className="flex items-center gap-2 px-6 py-2 bg-brand-accent/10 hover:bg-brand-accent text-brand-accent hover:text-white border border-brand-accent/20 rounded-xl text-[10px] font-bold uppercase transition-all"
+                  >
+                    Clear All Filters
+                  </button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
+      </section>
 
-        {/* STATS */}
-        <div className="flex justify-end">
-          <div className="px-4 py-2 bg-brand-surface border border-brand-border rounded-full shadow-sm">
-            <p className={cn("text-xs font-bold text-brand-secondary", isSindhi && "font-sindhi")}>
-              {isSindhi ? "موجود ڪتاب:" : "Total Results:"} <span className="text-brand-accent ml-1">{totalCount.toLocaleString()}</span>
-            </p>
-          </div>
-        </div>
-
-        {/* BOOK GRID */}
+      {/* --- DISPLAY AREA --- */}
+      <section className="max-w-7xl mx-auto px-4 mt-8 min-h-[500px]">
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <div key={i} className="aspect-[3/4.5] bg-brand-surface/40 animate-pulse rounded-[2.5rem] border border-brand-border" />
-            ))}
-          </div>
-        ) : books.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {books.map((book, index) => (
-              <motion.div
-                key={book.id}
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: (index % 12) * 0.03 }}
-                onClick={() => navigate(`/library/${book.id}`)}
-                className="group bg-brand-surface rounded-[2.5rem] border border-brand-border overflow-hidden hover:border-brand-accent transition-all shadow-xl flex flex-col h-full cursor-pointer hover:-translate-y-2"
-              >
-                <div className="aspect-[3/4.5] relative overflow-hidden bg-brand-bg flex items-center justify-center">
-                  {book.thumbnail ? (
-                    <img src={book.thumbnail} alt={book.title_en} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" loading="lazy" />
-                  ) : (
-                    <div className="flex flex-col items-center text-brand-border group-hover:text-brand-accent transition-colors">
-                      <BookIcon size={48} />
-                    </div>
-                  )}
-                  <div className="absolute top-4 right-4 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[9px] text-white font-bold border border-white/10">
-  {(book.language || 'PDF').charAt(0).toUpperCase() + (book.language || 'PDF').slice(1).toLowerCase()}
-</div>
-                </div>
-                <div className="p-6 flex flex-col flex-grow">
-                  <h3 className={cn("text-brand-primary font-bold text-sm mb-2 line-clamp-2 leading-tight group-hover:text-brand-accent transition-colors", isSindhi && "font-sindhi text-lg")}>
-                    {isSindhi ? (book.title_sd || book.title_en) : (book.title_en || book.title_sd)}
-                  </h3>
-                  <div className="mt-auto pt-4 border-t border-brand-border/30">
-                    <p className={cn("text-brand-secondary text-[10px] font-semibold truncate", isSindhi && "font-sindhi text-xs")}>
-                      {isSindhi ? (book.author_sd || book.author_en) : (book.author_en || book.author_sd)}
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 animate-pulse">
+            {Array.from({ length: 8 }).map((_, i) => <div key={i} className="aspect-[3/4.5] bg-brand-surface/40 rounded-[2.5rem]" />)}
           </div>
         ) : (
-          <div className="text-center py-32 bg-brand-surface/20 rounded-[3rem] border border-dashed border-brand-border">
-            <p className={cn("text-brand-secondary text-xl font-bold", isSindhi && "font-sindhi text-2xl")}>{isSindhi ? "ڪوبه ڪتاب نه مليو." : "No books found."}</p>
-          </div>
+          viewMode === 'grid' ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8" dir={isSindhi ? 'rtl' : 'ltr'}>
+              {books.map((book) => (
+                <motion.div key={book.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => navigate(`/library/${book.id}`)} className="group bg-brand-surface rounded-[2.5rem] border border-brand-border overflow-hidden hover:border-brand-accent transition-all shadow-xl flex flex-col h-full cursor-pointer hover:-translate-y-2 relative">
+                  <div className="aspect-[3/4.5] relative overflow-hidden bg-brand-bg">
+                    {book.thumbnail ? <img src={book.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" /> : <BookIcon className="w-full h-full p-12 opacity-5" />}
+                    {visibleColumns.year && (
+                      <div className="absolute top-4 right-4 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[9px] text-white font-bold border border-white/10">
+                        {book.year}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="p-6 space-y-3">
+                    <div>
+                      <h3 className={cn("text-brand-primary font-bold text-sm line-clamp-2", isSindhi && "font-sindhi text-lg")}>
+                        {isSindhi ? (book.title_sd || book.title_en) : (book.title_en || book.title_sd)}
+                      </h3>
+                      <p className={cn("text-brand-secondary text-[10px] font-semibold mt-1", isSindhi && "font-sindhi text-xs")}>
+                        {isSindhi ? (book.author_sd || book.author_en) : (book.author_en || book.author_sd)}
+                      </p>
+                    </div>
+                    <div className="pt-3 border-t border-brand-border/20 space-y-1">
+                      {visibleColumns.category && <div className="flex items-center gap-2 text-brand-secondary"><Tag size={10} className="text-brand-accent"/><span className="text-[9px] font-bold truncate">{book.category}</span></div>}
+                      {visibleColumns.publisher && <div className="flex items-center gap-2 text-brand-secondary"><Building size={10} className="text-brand-accent"/><span className="text-[9px] font-bold truncate">{book.publisher}</span></div>}
+                      {visibleColumns.sourceName && <div className="inline-block mt-2 px-2 py-0.5 bg-brand-bg border border-brand-border rounded text-[8px] font-bold text-brand-accent">{book.source_name || 'Archive'}</div>}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="w-full overflow-x-auto rounded-[2.5rem] border border-brand-border bg-brand-surface/20" dir="ltr">
+              <table className="w-full text-left border-collapse min-w-[900px]">
+                <thead>
+                  <tr className="bg-brand-surface border-b border-brand-border text-[10px] uppercase font-bold text-brand-secondary tracking-widest">
+                    {visibleColumns.icon && <th className="p-5">Icon</th>}
+                    {visibleColumns.titleEn && <th className="p-5">English Details</th>}
+                    {visibleColumns.titleSd && <th className="p-5 text-right">سنڌي تفصيل</th>}
+                    {visibleColumns.year && <th className="p-5 text-center">Year</th>}
+                    {visibleColumns.category && <th className="p-5">Category</th>}
+                    {visibleColumns.publisher && <th className="p-5">Publisher</th>}
+                    {visibleColumns.sourceName && <th className="p-5">Source</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-brand-border/30">
+                  {books.map((book) => (
+                    <tr key={book.id} onClick={() => navigate(`/library/${book.id}`)} className="hover:bg-brand-accent/5 cursor-pointer transition-colors">
+                      {visibleColumns.icon && <td className="p-4"><div className="w-10 h-14 bg-brand-bg rounded overflow-hidden">{book.thumbnail && <img src={book.thumbnail} className="w-full h-full object-cover" />}</div></td>}
+                      {visibleColumns.titleEn && <td className="p-5"><div className="text-sm font-bold text-brand-primary line-clamp-1">{book.title_en}</div><div className="text-[10px] text-brand-secondary">{book.author_en}</div></td>}
+                      {visibleColumns.titleSd && <td className="p-5 text-right" dir="rtl"><div className="font-sindhi text-xl font-bold text-brand-primary line-clamp-1">{book.title_sd}</div><div className="font-sindhi text-xs text-brand-accent">{book.author_sd}</div></td>}
+                      {visibleColumns.year && <td className="p-5 text-center text-xs font-bold">{book.year}</td>}
+                      {visibleColumns.category && <td className="p-5 text-xs text-brand-secondary">{book.category}</td>}
+                      {visibleColumns.publisher && <td className="p-5 text-xs text-brand-secondary">{book.publisher}</td>}
+                      {visibleColumns.sourceName && <td className="p-5"><span className="px-2 py-1 bg-brand-accent/10 text-brand-accent rounded text-[10px] font-bold">{book.source_name}</span></td>}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
         )}
 
-{/* PAGINATION */}
-{!loading && totalPages > 1 && (
-  <div className="flex flex-wrap justify-center items-center gap-2 mt-16 py-8 border-t border-brand-border/30">
-    
-    {/* Previous */}
-    <button
-      disabled={currentPage === 1}
-      onClick={() => { setCurrentPage(prev => prev - 1); window.scrollTo({ top: 400, behavior: 'smooth' }); }}
-      className="w-12 h-12 flex items-center justify-center rounded-xl bg-brand-surface text-brand-secondary disabled:opacity-20 border border-brand-border"
-    >
-      <ChevronLeft className={isSindhi ? "rotate-180" : ""} />
-    </button>
-
-    {/* First Page */}
-    {currentPage > 3 && (
-      <button
-        onClick={() => { setCurrentPage(1); window.scrollTo({ top: 400, behavior: 'smooth' }); }}
-        className={cn("w-12 h-12 rounded-xl font-bold border", currentPage === 1 ? "bg-brand-accent text-white scale-110" : "bg-brand-surface text-brand-secondary border-brand-border")}
-      >
-        1
-      </button>
-    )}
-
-    {/* Left Ellipsis */}
-    {currentPage > 4 && <span className="px-2 text-brand-secondary">...</span>}
-
-    {/* Middle Pages */}
-    {Array.from({ length: 5 }, (_, i) => currentPage - 2 + i)
-      .filter(p => p > 0 && p <= totalPages)
-      .map(p => (
-        <button
-          key={p}
-          onClick={() => { setCurrentPage(p); window.scrollTo({ top: 400, behavior: 'smooth' }); }}
-          className={cn("w-12 h-12 rounded-xl font-bold border transition-all", currentPage === p ? "bg-brand-accent text-white scale-110" : "bg-brand-surface text-brand-secondary border-brand-border")}
-        >
-          {p}
-        </button>
-      ))
-    }
-
-    {/* Right Ellipsis */}
-    {currentPage < totalPages - 3 && <span className="px-2 text-brand-secondary">...</span>}
-
-    {/* Last Page */}
-    {currentPage < totalPages - 2 && (
-      <button
-        onClick={() => { setCurrentPage(totalPages); window.scrollTo({ top: 400, behavior: 'smooth' }); }}
-        className={cn("w-12 h-12 rounded-xl font-bold border", currentPage === totalPages ? "bg-brand-accent text-white scale-110" : "bg-brand-surface text-brand-secondary border-brand-border")}
-      >
-        {totalPages}
-      </button>
-    )}
-
-    {/* Next */}
-    <button
-      disabled={currentPage === totalPages}
-      onClick={() => { setCurrentPage(prev => prev + 1); window.scrollTo({ top: 400, behavior: 'smooth' }); }}
-      className="w-12 h-12 flex items-center justify-center rounded-xl bg-brand-surface text-brand-secondary disabled:opacity-20 border border-brand-border"
-    >
-      <ChevronRight className={isSindhi ? "rotate-180" : ""} />
-    </button>
-    
-  </div>
-)}
+        {/* --- ADVANCED PAGINATION --- */}
+        {!loading && totalPages > 1 && (
+          <div className="flex flex-wrap justify-center items-center gap-2 mt-16 pb-10" dir="ltr">
+            <button disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)} className="p-3 bg-brand-surface border border-brand-border rounded-xl text-brand-secondary disabled:opacity-20 hover:border-brand-accent transition-all"><ChevronLeft size={20}/></button>
+            {getPageNumbers().map((p, idx) => (
+              p === '...' ? (
+                <span key={`dots-${idx}`} className="px-2 text-brand-secondary"><MoreHorizontal size={18}/></span>
+              ) : (
+                <button
+                  key={`page-${p}`}
+                  onClick={() => handlePageChange(p as number)}
+                  className={cn("w-12 h-12 rounded-xl font-bold text-sm border transition-all", currentPage === p ? "bg-brand-accent border-brand-accent text-white shadow-lg" : "bg-brand-surface border-brand-border text-brand-secondary hover:border-brand-accent")}
+                >
+                  {p}
+                </button>
+              )
+            ))}
+            <button disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)} className="p-3 bg-brand-surface border border-brand-border rounded-xl text-brand-secondary disabled:opacity-20 hover:border-brand-accent transition-all"><ChevronRight size={20}/></button>
+          </div>
+        )}
       </section>
     </div>
   );
