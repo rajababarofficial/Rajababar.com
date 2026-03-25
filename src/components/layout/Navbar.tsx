@@ -3,10 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu, X, Cpu, LayoutDashboard, Sun, Moon, Languages } from 'lucide-react';
 import { cn } from '@/src/utils/cn';
-import { SupabaseService } from '@/src/services/supabaseService';
 import { useTheme } from '@/src/context/ThemeContext';
 import { useLanguage } from '@/src/context/LanguageContext';
-import type { User } from '@supabase/supabase-js';
 
 const navItems = [
   { name: 'Home', nameSindhi: 'مُک صفحو', path: '/' },
@@ -19,14 +17,9 @@ const navItems = [
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
   const { theme, toggleTheme } = useTheme();
   const { language, toggleLanguage, isSindhi } = useLanguage();
   const location = useLocation();
-
-  useEffect(() => {
-    SupabaseService.getCurrentUser().then(setUser);
-  }, [location]);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-brand-border bg-brand-bg/80 backdrop-blur-xl font-sans">
@@ -84,15 +77,6 @@ export default function Navbar() {
               {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
             </button>
 
-            {/* Dashboard Link (Only if Logged In) */}
-            {user && (
-              <Link to="/dashboard" className="px-5 py-2 bg-brand-accent text-white rounded-full hover:opacity-90 transition-all flex items-center shadow-sm group">
-                <LayoutDashboard className="w-4 h-4 mr-2 group-hover:rotate-6 transition-transform" />
-                <span className={isSindhi ? "font-sindhi text-lg" : "text-sm font-bold"}>
-                  {isSindhi ? 'ڊيش بورڊ' : 'Dashboard'}
-                </span>
-              </Link>
-            )}
           </div>
 
           {/* Mobile Menu Controls */}
@@ -141,21 +125,6 @@ export default function Navbar() {
                   {isSindhi ? item.nameSindhi : item.name}
                 </Link>
               ))}
-              
-              {user && (
-                <div className="pt-4 px-3">
-                  <Link
-                    to="/dashboard"
-                    onClick={() => setIsOpen(false)}
-                    className="block w-full px-4 py-4 bg-brand-accent text-white text-center rounded-xl flex items-center justify-center shadow-lg"
-                  >
-                    <LayoutDashboard className="w-5 h-5 mr-2" />
-                    <span className={isSindhi ? "font-sindhi text-xl" : "font-bold"}>
-                      {isSindhi ? 'ڊيش بورڊ' : 'Dashboard'}
-                    </span>
-                  </Link>
-                </div>
-              )}
             </div>
           </motion.div>
         )}

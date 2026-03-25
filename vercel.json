@@ -1,7 +1,11 @@
 {
   "rewrites": [
     {
-      "source": "/((?!sitemap.xml|favicon.ico|robots.txt|images/|fonts/).*)",
+      "source": "/api/:path*",
+      "destination": "http://api.rajababar.com/api/:path*"
+    },
+    {
+      "source": "/((?!api|sitemap.xml|favicon.ico|robots.txt|images/|fonts/).*)",
       "destination": "/"
     }
   ]
