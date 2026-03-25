@@ -109,17 +109,20 @@ export const syncWithPostgres = async (db: any): Promise<boolean> => {
     console.log(`🔄 Syncing… (local max id = ${lastId})`);
     
     let totalInserted = 0;
+    let offset = 0;
+    let lastSync = meta ? meta.lastSync : 0;
+    
     while (true) {
-      const res = await fetch(`/api/library/sync?last_id=${lastId}&_t=${Date.now()}`);
+      const res = await fetch(`/api/library/sync?last_id=${lastId}&last_sync=${lastSync}&offset=${offset}&_t=${Date.now()}`);
       if (!res.ok) {
         console.error('❌ Sync API failed:', res.status, await res.text());
         break;
       }
 
-      const { books = [], total_new, has_more, next_id } = await res.json();
+      const { books = [], total_new, has_more, next_offset } = await res.json();
 
       if (books.length > 0) {
-        console.log(`📥 ${books.length} naye books mil gaye! Inserting...`);
+        console.log(`📥 ${books.length} records fetched! Inserting...`);
         
         // Ensure no `undefined` bypasses the query bindings
         const safeBooks = books.map((b: any) => ({
@@ -141,7 +144,7 @@ export const syncWithPostgres = async (db: any): Promise<boolean> => {
         try {
           insertBooks(db, safeBooks);
           totalInserted += safeBooks.length;
-          lastId = next_id;
+          offset = next_offset;
         } catch (insertErr) {
           console.error('❌ Error in insertBooks:', insertErr);
           throw insertErr;
