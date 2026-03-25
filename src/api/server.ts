@@ -27,9 +27,7 @@ app.get('/health', (req, res) => {
 // Export app for Vercel
 export default app;
 
-// Local development
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(port, () => {
-    console.log(`🚀 Library API Server running at http://localhost:${port}`);
-  });
-}
+// Start server always
+app.listen(port, () => {
+  console.log(`🚀 Server running at http://localhost:${port}`);
+});
