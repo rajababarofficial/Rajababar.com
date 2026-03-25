@@ -96,34 +96,77 @@ const insertBooks = (db: any, books: any[]) => {
 
 export const syncWithPostgres = async (db: any): Promise<boolean> => {
   try {
-    const lastId = getLocalMaxId(db);
+    let lastId = getLocalMaxId(db);
     const meta = await idbGet<{ lastSync: number }>('META_KEY');
     const now = Date.now();
 
-    // 30 min se pehle dobara sync na karo (battery + bandwidth save)
+    // 30 min se pehle dobara sync na karo
     if (meta && now - meta.lastSync < SYNC_INTERVAL) {
       console.log('⏩ Sync skipped — too soon');
       return false;
     }
 
     console.log(`🔄 Syncing… (local max id = ${lastId})`);
-    const res = await fetch(`/api/library/sync?last_id=${lastId}`);
-    if (!res.ok) return false;
+    
+    let totalInserted = 0;
+    while (true) {
+      const res = await fetch(`/api/library/sync?last_id=${lastId}`);
+      if (!res.ok) {
+        console.error('❌ Sync API failed:', res.status, await res.text());
+        break;
+      }
 
-    const { books = [], total_new } = await res.json();
+      const { books = [], total_new, has_more, next_id } = await res.json();
 
-    if (books.length > 0) {
-      console.log(`📥 ${books.length} naye books mil gaye!`);
-      insertBooks(db, books);
-      const updated = db.export();
-      await idbPut(DB_KEY, updated);
-      console.log(`✅ Sync complete. Local total: ${getLocalCount(db)}`);
-    } else {
-      console.log('✅ Already up to date.');
+      if (books.length > 0) {
+        console.log(`📥 ${books.length} naye books mil gaye! Inserting...`);
+        
+        // Ensure no `undefined` bypasses the query bindings
+        const safeBooks = books.map((b: any) => ({
+          ...b,
+          title_en: b.title_en ?? null,
+          title_sd: b.title_sd ?? null,
+          author_en: b.author_en ?? null,
+          author_sd: b.author_sd ?? null,
+          category: b.category ?? null,
+          publisher: b.publisher ?? null,
+          year: b.year ?? null,
+          language: b.language ?? null,
+          source_name: b.source_name ?? null,
+          identifier: b.identifier ?? null,
+          thumbnail: b.thumbnail ?? null,
+          link: b.link ?? null,
+        }));
+
+        try {
+          insertBooks(db, safeBooks);
+          totalInserted += safeBooks.length;
+          lastId = next_id;
+        } catch (insertErr) {
+          console.error('❌ Error in insertBooks:', insertErr);
+          throw insertErr;
+        }
+      } else {
+        break;
+      }
+
+      if (!has_more) {
+        break;
+      }
     }
 
-    await idbPut(META_KEY, { lastSync: now, localCount: getLocalCount(db) });
-    return books.length > 0;
+    if (totalInserted > 0) {
+      const updated = db.export();
+      await idbPut(DB_KEY, updated);
+      console.log(`✅ Sync complete. Total Synced: ${totalInserted}. Local total: ${getLocalCount(db)}`);
+      await idbPut(META_KEY, { lastSync: now, localCount: getLocalCount(db) });
+      return true;
+    } else {
+      console.log(`✅ Already up to date. Local total: ${getLocalCount(db)}`);
+      await idbPut(META_KEY, { lastSync: now, localCount: getLocalCount(db) });
+      return false;
+    }
+
   } catch (err) {
     console.error('❌ Sync error:', err);
     return false;
