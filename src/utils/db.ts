@@ -110,7 +110,7 @@ export const syncWithPostgres = async (db: any): Promise<boolean> => {
     
     let totalInserted = 0;
     while (true) {
-      const res = await fetch(`/api/library/sync?last_id=${lastId}`);
+      const res = await fetch(`/api/library/sync?last_id=${lastId}&_t=${Date.now()}`);
       if (!res.ok) {
         console.error('❌ Sync API failed:', res.status, await res.text());
         break;

@@ -23,8 +23,12 @@ export const syncHandler = async (req: Request, res: Response) => {
     const client = await getPool().connect();
 
     try {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
       const countRes = await client.query(
-        'SELECT COUNT(*) FROM "Books" WHERE id > $1',
+        'SELECT COUNT(*) FROM "Books" WHERE CAST(id AS BIGINT) > $1',
         [lastId]
       );
       const totalNew = Number(countRes.rows[0].count);
@@ -36,8 +40,8 @@ export const syncHandler = async (req: Request, res: Response) => {
            category, publisher, year, language,
            source_name, identifier, thumbnail, link
          FROM "Books"
-         WHERE id > $1
-         ORDER BY id ASC
+         WHERE CAST(id AS BIGINT) > $1
+         ORDER BY CAST(id AS BIGINT) ASC
          LIMIT $2`,
         [lastId, limit]
       );
