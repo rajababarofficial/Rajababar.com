@@ -40,9 +40,12 @@ export default function Library() {
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [globalTotal, setGlobalTotal] = useState(0);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
+
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    return typeof window !== 'undefined' ? (sessionStorage.getItem('lib_view') as 'grid'|'list') || 'grid' : 'grid';
+  });
 
   const [visibleColumns, setVisibleColumns] = useState({
     icon: false, titleEn: false, titleSd: true, year: true,
@@ -60,7 +63,8 @@ export default function Library() {
     sessionStorage.setItem('lib_search', searchTerm);
     sessionStorage.setItem('lib_page', String(currentPage));
     sessionStorage.setItem('lib_filters', JSON.stringify(filters));
-  }, [searchTerm, currentPage, filters]);
+    sessionStorage.setItem('lib_view', viewMode);
+  }, [searchTerm, currentPage, filters, viewMode]);
 
     // Fetch Global Count from Postgres
     useEffect(() => {
