@@ -12,7 +12,7 @@ import type { ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 
 // Scroll to Top Component
-import ScrollToTop from "./components/ScrollToTop"; 
+import ScrollToTop from "./components/ScrollToTop";
 
 // Lazy load pages
 const Home = lazy(() => import('@/src/pages/Home'));
@@ -21,18 +21,12 @@ const Projects = lazy(() => import('@/src/pages/Projects'));
 const Tools = lazy(() => import('@/src/pages/Tools'));
 const Downloads = lazy(() => import('@/src/pages/Downloads'));
 const Contact = lazy(() => import('@/src/pages/Contact'));
-const AuthDemo = lazy(() => import('@/src/pages/AuthDemo'));
-const Dashboard = lazy(() => import('@/src/pages/Dashboard'));
 
 // Library Pages
 const Library = lazy(() => import('@/src/pages/Library')); // All in one page
-const SindhLibrary = lazy(() => import('@/src/pages/SindhLibrary')); // Dedicated Sindh Page
-const ArchiveLibrary = lazy(() => import('@/src/pages/ArchiveLibrary')); // Dedicated Archive Page
-const Books = lazy(() => import('@/src/pages/Books')); // <--- Naya SQLite Page
 
 // Detail Pages
 const BookDetails = lazy(() => import('@/src/pages/BookDetails'));
-const ArchiveBookDetails = lazy(() => import('@/src/pages/ArchiveBookDetails'));
 
 // Tools Sub-pages
 const PdfMetadataExtractor = lazy(() => import('@/src/pages/tools/PdfMetadataExtractor'));
@@ -40,8 +34,8 @@ const PdfMetadataExtractor = lazy(() => import('@/src/pages/tools/PdfMetadataExt
 export default function App() {
   return (
     <Router>
-      <ScrollToTop /> 
-      
+      <ScrollToTop />
+
       <div className="min-h-screen flex flex-col">
         <Navbar />
         <main className="flex-grow">
@@ -53,20 +47,10 @@ export default function App() {
                 <Route path="/about" element={<PageWrapper><About /></PageWrapper>} />
 
                 {/* --- Library Routes --- */}
-                
-                {/* 1. Main Library (Both Sections) */}
-                <Route path="/library" element={<PageWrapper><Library /></PageWrapper>} />
-                
-                {/* 2. New Digital Library (SQLite Based) */}
-                <Route path="/books" element={<PageWrapper><Books /></PageWrapper>} />
-                
-                {/* 3. Sindh Library (Single Page) */}
-                <Route path="/sindh-library" element={<PageWrapper><SindhLibrary /></PageWrapper>} />
-                <Route path="/library/:id" element={<PageWrapper><BookDetails /></PageWrapper>} />
 
-                {/* 4. Archive Library (Single Page) */}
-                <Route path="/archive-library" element={<PageWrapper><ArchiveLibrary /></PageWrapper>} />
-                <Route path="/archive-library/:id" element={<PageWrapper><ArchiveBookDetails /></PageWrapper>} />
+                {/* 1. Main Library (Integrated Postgres/SQLite) */}
+                <Route path="/library" element={<PageWrapper><Library /></PageWrapper>} />
+                <Route path="/library/:id" element={<PageWrapper><BookDetails /></PageWrapper>} />
 
                 {/* Tools & Projects */}
                 <Route path="/projects" element={<PageWrapper><Projects /></PageWrapper>} />
@@ -76,8 +60,6 @@ export default function App() {
                 {/* Other Pages */}
                 <Route path="/downloads" element={<PageWrapper><Downloads /></PageWrapper>} />
                 <Route path="/contact" element={<PageWrapper><Contact /></PageWrapper>} />
-                <Route path="/auth" element={<PageWrapper><AuthDemo /></PageWrapper>} />
-                <Route path="/dashboard" element={<PageWrapper><Dashboard /></PageWrapper>} />
               </Routes>
             </Suspense>
           </AnimatePresence>

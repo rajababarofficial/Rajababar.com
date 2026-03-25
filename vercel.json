@@ -1,7 +1,11 @@
 {
   "rewrites": [
     {
-      "source": "/((?!sitemap.xml|favicon.ico|robots.txt|images/|fonts/).*)",
+      "source": "/api/(.*)",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/((?!api|sitemap.xml|favicon.ico|robots.txt|images/|fonts/).*)",
       "destination": "/"
     }
   ]

@@ -132,41 +132,55 @@ export default function BookDetails() {
               </span>
 
               <div className="space-y-4">
-                <h1 className={cn("text-brand-primary leading-[1.2] font-bold text-4xl sm:text-5xl lg:text-6xl", isSindhi && "font-sindhi")}>
-                  {isSindhi ? book.title_sd : book.title_en}
-                </h1>
+                {/* Always show Sindhi Title if exists, with proper font/direction */}
+                {book.title_sd && (
+                  <h1 className="text-brand-primary leading-[1.2] font-bold text-4xl sm:text-5xl lg:text-6xl font-sindhi text-right" dir="rtl">
+                    {book.title_sd}
+                  </h1>
+                )}
                 
-                {/* Secondary Title (Opposite Language) */}
-                <p className={cn("text-xl text-brand-secondary opacity-60", !isSindhi && "font-sindhi")}>
-                  {isSindhi ? book.title_en : book.title_sd}
-                </p>
+                {/* Always show English Title if exists */}
+                {book.title_en && (
+                  <h2 className={cn(
+                    "text-brand-primary leading-[1.2] font-bold text-left",
+                    book.title_sd ? "text-xl sm:text-2xl opacity-70" : "text-4xl sm:text-5xl lg:text-6xl"
+                  )} dir="ltr">
+                    {book.title_en}
+                  </h2>
+                )}
 
-                <div className="pt-4 flex items-center gap-3">
-                  <div className="w-10 h-0.5 bg-brand-accent/30" />
-                  <p className={cn("text-2xl text-brand-accent font-medium", isSindhi && "font-sindhi")}>
-                    <span className="text-brand-secondary/60 text-lg">{isSindhi ? "ليکڪ:" : "Author:"}</span> {displayAuthor}
-                  </p>
+                <div className="pt-4 flex flex-col gap-2">
+                  {book.author_sd && (
+                    <p className="text-2xl text-brand-accent font-medium font-sindhi text-right" dir="rtl">
+                      <span className="text-brand-secondary/60 text-lg">ليکڪ:</span> {book.author_sd}
+                    </p>
+                  )}
+                  {book.author_en && (
+                    <p className="text-lg text-brand-accent font-medium text-left" dir="ltr">
+                      <span className="text-brand-secondary/60 text-sm">Author:</span> {book.author_en}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Meta Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6 p-8 bg-brand-surface/30 border border-brand-border rounded-[2rem] backdrop-blur-md shadow-inner">
-              <div className="space-y-2">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6 p-8 bg-brand-surface/30 border border-brand-border rounded-[2rem] backdrop-blur-md shadow-inner" dir="ltr">
+              <div className="space-y-2 text-left">
                 <p className="text-[10px] text-brand-secondary uppercase font-bold tracking-widest flex items-center gap-2">
-                  <Building2 size={14} className="text-brand-accent" /> {isSindhi ? "پبلشر" : "Publisher"}
+                  <Building2 size={14} className="text-brand-accent" /> Publisher
                 </p>
                 <p className="text-sm font-bold text-brand-primary truncate">{book.publisher || "---"}</p>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 text-left">
                 <p className="text-[10px] text-brand-secondary uppercase font-bold tracking-widest flex items-center gap-2">
-                  <Calendar size={14} className="text-brand-accent" /> {isSindhi ? "سال" : "Year"}
+                  <Calendar size={14} className="text-brand-accent" /> Year
                 </p>
                 <p className="text-sm font-bold text-brand-primary">{book.year || "---"}</p>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 text-left">
                 <p className="text-[10px] text-brand-secondary uppercase font-bold tracking-widest flex items-center gap-2">
-                  <Globe2 size={14} className="text-brand-accent" /> {isSindhi ? "ٻولي" : "Language"}
+                  <Globe2 size={14} className="text-brand-accent" /> Language
                 </p>
                 <p className="text-sm font-bold text-brand-primary uppercase tracking-tighter">{book.language || "N/A"}</p>
               </div>

@@ -3,16 +3,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  BookOpen, Search, Filter, Book as BookIcon, 
+import {
+  BookOpen, Search, Filter, Book as BookIcon,
   ChevronLeft, ChevronRight, LayoutGrid, List as ListIcon,
   Settings2, Building, Calendar, Tag, Globe, Library as LibraryIcon, MoreHorizontal
 } from 'lucide-react';
 import PageHeader from '@/src/components/PageHeader';
 import { useLanguage } from '@/src/context/LanguageContext';
 import { cn } from '@/src/utils/cn';
-import { getDatabase } from '@/src/utils/db';
+import { getDatabase, syncWithPostgres, semanticSearch } from '@/src/utils/db';
 import SEO from '@/src/components/layout/SEO';
+import { RefreshCw, Sparkles } from 'lucide-react';
 
 export default function Library() {
   const { isSindhi } = useLanguage();
@@ -22,7 +23,7 @@ export default function Library() {
   const [searchTerm, setSearchTerm] = useState(() => {
     return typeof window !== 'undefined' ? sessionStorage.getItem('lib_search') || '' : '';
   });
-  
+
   const [currentPage, setCurrentPage] = useState(() => {
     return typeof window !== 'undefined' ? Number(sessionStorage.getItem('lib_page')) || 1 : 1;
   });
@@ -38,16 +39,20 @@ export default function Library() {
   const [books, setBooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
+  const [globalTotal, setGlobalTotal] = useState(0);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
-  
+
   const [visibleColumns, setVisibleColumns] = useState({
-    icon: false, titleEn: true, titleSd: true, year: true, 
+    icon: false, titleEn: false, titleSd: true, year: true,
     category: true, publisher: false, language: false, sourceName: true
   });
 
   const [options, setOptions] = useState({ categories: [], languages: [], years: [], publishers: [], sources: [] });
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isSemantic, setIsSemantic] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
   const itemsPerPage = 12;
 
   // --- Save to Session Storage whenever states change ---
@@ -57,35 +62,88 @@ export default function Library() {
     sessionStorage.setItem('lib_filters', JSON.stringify(filters));
   }, [searchTerm, currentPage, filters]);
 
-  // 1. Load Filter Options
+    // Fetch Global Count from Postgres
+    useEffect(() => {
+      const fetchGlobalInfo = async () => {
+        try {
+          const res = await fetch('/api/library/info');
+          if (res.ok) {
+            const data = await res.json();
+            setGlobalTotal(data.total);
+          }
+        } catch (err) { }
+      };
+      fetchGlobalInfo();
+    }, []);
+
+  // 1. Sync & Init Logic
   useEffect(() => {
-    const loadOptions = async () => {
+    const performInitAndSync = async () => {
       try {
+        // We check if it's the very first time (No DB in memory yet)
+        setIsInitializing(true);
         const db = await getDatabase();
-        const getDistinct = (col: string) => {
-          const res = db.exec(`SELECT DISTINCT ${col} FROM Books WHERE ${col} IS NOT NULL AND ${col} != '' ORDER BY ${col} ASC`);
-          return res.length > 0 ? res[0].values.map(v => String(v[0])) : [];
-        };
-        setOptions({
-          categories: getDistinct('category'),
-          languages: getDistinct('language'),
-          years: getDistinct('year').sort((a,b) => Number(b) - Number(a)),
-          publishers: getDistinct('publisher'),
-          sources: getDistinct('source_name')
-        });
-      } catch (err) { console.error(err); }
+        setIsInitializing(false);
+
+        // Fetch Initial data once DB is ready
+        fetchBooks();
+        loadOptions();
+
+        // Background Sync (Checks for updates from Postgres)
+        setIsSyncing(true);
+        const updated = await syncWithPostgres(db);
+        if (updated) {
+          fetchBooks();
+          loadOptions();
+        }
+      } catch (err) {
+        console.error("Database Initializaton Error:", err);
+      } finally {
+        setIsInitializing(false);
+        setIsSyncing(false);
+      }
     };
-    loadOptions();
+    performInitAndSync();
+  }, []); // Once on mount
+
+  // 1.1 Load Filter Options
+  const loadOptions = useCallback(async () => {
+    try {
+      const db = await getDatabase();
+      const getDistinct = (col: string) => {
+        const res = db.exec(`SELECT DISTINCT ${col} FROM Books WHERE ${col} IS NOT NULL AND ${col} != '' ORDER BY ${col} ASC`);
+        return res.length > 0 ? res[0].values.map(v => String(v[0])) : [];
+      };
+      setOptions({
+        categories: getDistinct('category'),
+        languages: getDistinct('language'),
+        years: getDistinct('year').sort((a, b) => Number(b) - Number(a)),
+        publishers: getDistinct('publisher'),
+        sources: getDistinct('source_name')
+      });
+    } catch (err) { console.error(err); }
   }, []);
+
+  useEffect(() => {
+    loadOptions();
+  }, [loadOptions]);
 
   // 2. Fetch Logic (Thumbnails + Filters)
   const fetchBooks = useCallback(async () => {
     try {
       setLoading(true);
+      if (isSemantic && searchTerm.trim()) {
+        const results = await semanticSearch(searchTerm, itemsPerPage);
+        setBooks(results);
+        setTotalCount(results.length);
+        setLoading(false);
+        return;
+      }
+
       const db = await getDatabase();
       const offset = (currentPage - 1) * itemsPerPage;
       const safeSearch = searchTerm.replace(/'/g, "''").trim();
-      
+
       let whereClauses = [];
       if (safeSearch) whereClauses.push(`(title_en LIKE '%${safeSearch}%' OR title_sd LIKE '%${safeSearch}%' OR author_en LIKE '%${safeSearch}%' OR author_sd LIKE '%${safeSearch}%')`);
       if (filters.category) whereClauses.push(`category = '${filters.category.replace(/'/g, "''")}'`);
@@ -95,7 +153,7 @@ export default function Library() {
       if (filters.source) whereClauses.push(`source_name = '${filters.source.replace(/'/g, "''")}'`);
 
       const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-      
+
       const countRes = db.exec(`SELECT COUNT(*) FROM Books ${whereSql}`);
       setTotalCount(countRes[0].values[0][0] as number);
 
@@ -112,7 +170,7 @@ export default function Library() {
         setBooks(rows);
       } else { setBooks([]); }
     } catch (e) { console.error(e); } finally { setLoading(false); }
-  }, [currentPage, searchTerm, filters]);
+  }, [currentPage, searchTerm, filters, isSemantic]);
 
   useEffect(() => { fetchBooks(); }, [fetchBooks]);
 
@@ -152,7 +210,7 @@ export default function Library() {
   return (
     <div className="pt-24 pb-20 bg-brand-bg min-h-screen">
       <SEO title={isSindhi ? "ڊجيٽل لائبريري" : "Digital Library"} />
-      
+
       <PageHeader
         title={isSindhi ? "ڊجيٽل لائبريري" : "Digital Library"}
         description={isSindhi ? "ايم. ايڇ پنهور انسٽيٽيوٽ جو مڪمل ڊجيٽل ذخيرو." : "The comprehensive digital repository of MHPISSJ."}
@@ -161,19 +219,25 @@ export default function Library() {
 
       {/* --- CONTROL BAR --- */}
       <section className="max-w-7xl mx-auto px-4 mt-12 space-y-4" dir="ltr">
-        <div className="flex justify-between items-center mb-2 px-6">
+        <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 bg-brand-accent/10 text-brand-accent px-4 py-2 rounded-full border border-brand-accent/20">
-            <LibraryIcon size={16}/>
+            <LibraryIcon size={16} />
             <span className="text-sm font-bold tracking-widest uppercase">
-              Total Result: <span className="text-brand-primary">{totalCount}</span>
+              {searchTerm || Object.values(filters).some(v => v !== '') 
+                ? `Search Result: ` 
+                : `Total Books: `}
+              <span className="text-brand-primary">
+                {searchTerm || Object.values(filters).some(v => v !== '') ? totalCount : (globalTotal || totalCount)}
+              </span>
             </span>
           </div>
+          {/* Silent Syncing */}
         </div>
 
         <div className="glass p-6 rounded-[2.5rem] border border-brand-border/50 bg-brand-surface/20 shadow-2xl backdrop-blur-xl">
           <div className="flex flex-col md:flex-row gap-4 items-center">
             <div className="relative flex-1 w-full text-left">
-              <input 
+              <input
                 type="text"
                 placeholder="Search database..."
                 className="w-full pl-12 pr-6 py-4 bg-brand-bg/50 border border-brand-border rounded-2xl outline-none focus:border-brand-accent text-brand-primary"
@@ -184,13 +248,25 @@ export default function Library() {
             </div>
 
             <div className="flex items-center gap-2">
-              <button onClick={() => setShowColumnSettings(!showColumnSettings)} className={cn("p-4 rounded-2xl border transition-all flex items-center gap-2", showColumnSettings ? "bg-brand-accent text-white" : "bg-brand-surface border-brand-border text-brand-primary")}>
-                <Settings2 size={20}/> <span className="text-xs font-bold uppercase">Display</span>
+              <button
+                onClick={() => setIsSemantic(!isSemantic)}
+                className={cn(
+                  "p-4 rounded-2xl border transition-all flex items-center gap-2",
+                  isSemantic ? "bg-indigo-600 text-white border-indigo-500 shadow-indigo-200 shadow-lg" : "bg-brand-surface border-brand-border text-brand-primary"
+                )}
+                title="AI Powered Semantic Search (pgvector)"
+              >
+                <Sparkles size={20}/>
+                <span className="text-xs font-bold uppercase hidden md:inline">Semantic AI</span>
               </button>
-              <button onClick={() => setShowFilters(!showFilters)} className={cn("p-4 rounded-2xl border transition-all", showFilters ? "bg-brand-accent text-white" : "bg-brand-surface border-brand-border text-brand-primary")}><Filter size={20}/></button>
+
+              <button onClick={() => setShowColumnSettings(!showColumnSettings)} className={cn("p-4 rounded-2xl border transition-all flex items-center gap-2", showColumnSettings ? "bg-brand-accent text-white" : "bg-brand-surface border-brand-border text-brand-primary")}>
+                <Settings2 size={20}/> <span className="text-xs font-bold uppercase hidden md:inline">Display</span>
+              </button>
+              <button onClick={() => setShowFilters(!showFilters)} className={cn("p-4 rounded-2xl border transition-all", showFilters ? "bg-brand-accent text-white" : "bg-brand-surface border-brand-border text-brand-primary")}><Filter size={20} /></button>
               <div className="flex bg-brand-bg/50 p-1 border border-brand-border rounded-2xl">
-                <button onClick={() => setViewMode('grid')} className={cn("p-2 rounded-xl", viewMode === 'grid' ? "bg-brand-accent text-white shadow-lg" : "text-brand-secondary")}><LayoutGrid size={20}/></button>
-                <button onClick={() => setViewMode('list')} className={cn("p-2 rounded-xl", viewMode === 'list' ? "bg-brand-accent text-white shadow-lg" : "text-brand-secondary")}><ListIcon size={20}/></button>
+                <button onClick={() => setViewMode('grid')} className={cn("p-2 rounded-xl", viewMode === 'grid' ? "bg-brand-accent text-white shadow-lg" : "text-brand-secondary")}><LayoutGrid size={20} /></button>
+                <button onClick={() => setViewMode('list')} className={cn("p-2 rounded-xl", viewMode === 'list' ? "bg-brand-accent text-white shadow-lg" : "text-brand-secondary")}><ListIcon size={20} /></button>
               </div>
             </div>
           </div>
@@ -213,30 +289,30 @@ export default function Library() {
             {showFilters && (
               <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden mt-6 pt-6 border-t border-brand-border/30">
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  <select className="bg-brand-bg border border-brand-border p-3 rounded-xl text-xs text-brand-primary outline-none" value={filters.category} onChange={e => { setFilters(f => ({...f, category: e.target.value})); setCurrentPage(1); }}>
+                  <select className="bg-brand-bg border border-brand-border p-3 rounded-xl text-xs text-brand-primary outline-none" value={filters.category} onChange={e => { setFilters(f => ({ ...f, category: e.target.value })); setCurrentPage(1); }}>
                     <option value="">Category</option>
                     {options.categories.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
-                  <select className="bg-brand-bg border border-brand-border p-3 rounded-xl text-xs text-brand-primary outline-none" value={filters.publisher} onChange={e => { setFilters(f => ({...f, publisher: e.target.value})); setCurrentPage(1); }}>
+                  <select className="bg-brand-bg border border-brand-border p-3 rounded-xl text-xs text-brand-primary outline-none" value={filters.publisher} onChange={e => { setFilters(f => ({ ...f, publisher: e.target.value })); setCurrentPage(1); }}>
                     <option value="">Publisher</option>
                     {options.publishers.map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
-                  <select className="bg-brand-bg border border-brand-border p-3 rounded-xl text-xs text-brand-primary outline-none" value={filters.year} onChange={e => { setFilters(f => ({...f, year: e.target.value})); setCurrentPage(1); }}>
+                  <select className="bg-brand-bg border border-brand-border p-3 rounded-xl text-xs text-brand-primary outline-none" value={filters.year} onChange={e => { setFilters(f => ({ ...f, year: e.target.value })); setCurrentPage(1); }}>
                     <option value="">Year</option>
                     {options.years.map(y => <option key={y} value={y}>{y}</option>)}
                   </select>
-                  <select className="bg-brand-bg border border-brand-border p-3 rounded-xl text-xs text-brand-primary outline-none" value={filters.source} onChange={e => { setFilters(f => ({...f, source: e.target.value})); setCurrentPage(1); }}>
+                  <select className="bg-brand-bg border border-brand-border p-3 rounded-xl text-xs text-brand-primary outline-none" value={filters.source} onChange={e => { setFilters(f => ({ ...f, source: e.target.value })); setCurrentPage(1); }}>
                     <option value="">Source</option>
                     {options.sources.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
-                  <select className="bg-brand-bg border border-brand-border p-3 rounded-xl text-xs text-brand-primary outline-none" value={filters.language} onChange={e => { setFilters(f => ({...f, language: e.target.value})); setCurrentPage(1); }}>
+                  <select className="bg-brand-bg border border-brand-border p-3 rounded-xl text-xs text-brand-primary outline-none" value={filters.language} onChange={e => { setFilters(f => ({ ...f, language: e.target.value })); setCurrentPage(1); }}>
                     <option value="">Language</option>
                     {options.languages.map(l => <option key={l} value={l}>{l}</option>)}
                   </select>
                 </div>
                 {/* Clear Filter Button Added Here */}
                 <div className="flex justify-end mt-6 pt-4 border-t border-brand-border/20">
-                  <button 
+                  <button
                     onClick={clearFilters}
                     className="flex items-center gap-2 px-6 py-2 bg-brand-accent/10 hover:bg-brand-accent text-brand-accent hover:text-white border border-brand-accent/20 rounded-xl text-[10px] font-bold uppercase transition-all"
                   >
@@ -251,8 +327,21 @@ export default function Library() {
 
       {/* --- DISPLAY AREA --- */}
       <section className="max-w-7xl mx-auto px-4 mt-8 min-h-[500px]">
-        {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 animate-pulse">
+        {isInitializing ? (
+          <div className="flex flex-col items-center justify-center py-40 space-y-6 text-center">
+             <div className="relative">
+               <RefreshCw size={80} className="text-brand-accent animate-spin opacity-20" />
+               <BookOpen size={40} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-brand-accent animate-pulse" />
+             </div>
+             <div>
+               <h2 className="text-2xl font-bold text-brand-primary mb-2">Initializing Digital Library</h2>
+               <p className="text-brand-secondary text-sm max-w-sm mx-auto">
+                 We are preparing the local database for fast searching. This might take a few seconds on first load.
+               </p>
+             </div>
+          </div>
+        ) : loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 animate-pulse text-left">
             {Array.from({ length: 8 }).map((_, i) => <div key={i} className="aspect-[3/4.5] bg-brand-surface/40 rounded-[2.5rem]" />)}
           </div>
         ) : (
@@ -263,25 +352,35 @@ export default function Library() {
                   <div className="aspect-[3/4.5] relative overflow-hidden bg-brand-bg">
                     {book.thumbnail ? <img src={book.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" /> : <BookIcon className="w-full h-full p-12 opacity-5" />}
                     {visibleColumns.year && (
-                      <div className="absolute top-4 right-4 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[9px] text-white font-bold border border-white/10">
+                      <div className="absolute top-4 right-4 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[9px] text-white font-bold border border-white/10" dir="ltr">
                         {book.year}
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="p-6 space-y-3">
                     <div>
-                      <h3 className={cn("text-brand-primary font-bold text-sm line-clamp-2", isSindhi && "font-sindhi text-lg")}>
-                        {isSindhi ? (book.title_sd || book.title_en) : (book.title_en || book.title_sd)}
+                      {/* Priority Title: Sindhi takes priority if visible, with proper RTL/Font */}
+                      <h3 className={cn(
+                        "text-brand-primary font-bold line-clamp-2", 
+                        visibleColumns.titleSd && book.title_sd ? "font-sindhi text-lg text-right" : "text-sm text-left"
+                      )} dir={visibleColumns.titleSd && book.title_sd ? "rtl" : "ltr"}>
+                        {visibleColumns.titleSd && book.title_sd ? book.title_sd : book.title_en}
                       </h3>
-                      <p className={cn("text-brand-secondary text-[10px] font-semibold mt-1", isSindhi && "font-sindhi text-xs")}>
-                        {isSindhi ? (book.author_sd || book.author_en) : (book.author_en || book.author_sd)}
+                      
+                      {/* Priority Author */}
+                      <p className={cn(
+                        "text-brand-secondary mt-1 font-semibold", 
+                        visibleColumns.titleSd && book.author_sd ? "font-sindhi text-xs text-right" : "text-[10px] text-left"
+                      )} dir={visibleColumns.titleSd && book.author_sd ? "rtl" : "ltr"}>
+                        {visibleColumns.titleSd && book.author_sd ? book.author_sd : book.author_en}
                       </p>
                     </div>
-                    <div className="pt-3 border-t border-brand-border/20 space-y-1">
-                      {visibleColumns.category && <div className="flex items-center gap-2 text-brand-secondary"><Tag size={10} className="text-brand-accent"/><span className="text-[9px] font-bold truncate">{book.category}</span></div>}
-                      {visibleColumns.publisher && <div className="flex items-center gap-2 text-brand-secondary"><Building size={10} className="text-brand-accent"/><span className="text-[9px] font-bold truncate">{book.publisher}</span></div>}
-                      {visibleColumns.sourceName && <div className="inline-block mt-2 px-2 py-0.5 bg-brand-bg border border-brand-border rounded text-[8px] font-bold text-brand-accent">{book.source_name || 'Archive'}</div>}
+                    <div className="pt-3 border-t border-brand-border/20 space-y-1" dir="ltr">
+                      {visibleColumns.category && <div className="flex items-center gap-2 text-brand-secondary"><Tag size={10} className="text-brand-accent" /><span className="text-[9px] font-bold truncate text-left">{book.category}</span></div>}
+                      {visibleColumns.publisher && <div className="flex items-center gap-2 text-brand-secondary"><Building size={10} className="text-brand-accent" /><span className="text-[9px] font-bold truncate text-left">{book.publisher}</span></div>}
+                      {visibleColumns.language && <div className="flex items-center gap-2 text-brand-secondary"><Globe size={10} className="text-brand-accent" /><span className="text-[9px] font-bold truncate text-left">{book.language}</span></div>}
+                      {visibleColumns.sourceName && <div className="inline-block mt-2 px-2 py-0.5 bg-brand-bg border border-brand-border rounded text-[8px] font-bold text-brand-accent text-left">{book.source_name || 'Archive'}</div>}
                     </div>
                   </div>
                 </motion.div>
@@ -293,11 +392,12 @@ export default function Library() {
                 <thead>
                   <tr className="bg-brand-surface border-b border-brand-border text-[10px] uppercase font-bold text-brand-secondary tracking-widest">
                     {visibleColumns.icon && <th className="p-5">Icon</th>}
-                    {visibleColumns.titleEn && <th className="p-5">English Details</th>}
+                    {visibleColumns.titleEn && <th className="p-5 text-left">English Details</th>}
                     {visibleColumns.titleSd && <th className="p-5 text-right">سنڌي تفصيل</th>}
                     {visibleColumns.year && <th className="p-5 text-center">Year</th>}
                     {visibleColumns.category && <th className="p-5">Category</th>}
                     {visibleColumns.publisher && <th className="p-5">Publisher</th>}
+                    {visibleColumns.language && <th className="p-5">Language</th>}
                     {visibleColumns.sourceName && <th className="p-5">Source</th>}
                   </tr>
                 </thead>
@@ -305,11 +405,12 @@ export default function Library() {
                   {books.map((book) => (
                     <tr key={book.id} onClick={() => navigate(`/library/${book.id}`)} className="hover:bg-brand-accent/5 cursor-pointer transition-colors">
                       {visibleColumns.icon && <td className="p-4"><div className="w-10 h-14 bg-brand-bg rounded overflow-hidden">{book.thumbnail && <img src={book.thumbnail} className="w-full h-full object-cover" />}</div></td>}
-                      {visibleColumns.titleEn && <td className="p-5"><div className="text-sm font-bold text-brand-primary line-clamp-1">{book.title_en}</div><div className="text-[10px] text-brand-secondary">{book.author_en}</div></td>}
+                      {visibleColumns.titleEn && <td className="p-5 text-left"><div className="text-sm font-bold text-brand-primary line-clamp-1">{book.title_en}</div><div className="text-[10px] text-brand-secondary">{book.author_en}</div></td>}
                       {visibleColumns.titleSd && <td className="p-5 text-right" dir="rtl"><div className="font-sindhi text-xl font-bold text-brand-primary line-clamp-1">{book.title_sd}</div><div className="font-sindhi text-xs text-brand-accent">{book.author_sd}</div></td>}
                       {visibleColumns.year && <td className="p-5 text-center text-xs font-bold">{book.year}</td>}
                       {visibleColumns.category && <td className="p-5 text-xs text-brand-secondary">{book.category}</td>}
                       {visibleColumns.publisher && <td className="p-5 text-xs text-brand-secondary">{book.publisher}</td>}
+                      {visibleColumns.language && <td className="p-5 text-xs text-brand-secondary">{book.language}</td>}
                       {visibleColumns.sourceName && <td className="p-5"><span className="px-2 py-1 bg-brand-accent/10 text-brand-accent rounded text-[10px] font-bold">{book.source_name}</span></td>}
                     </tr>
                   ))}
@@ -322,10 +423,10 @@ export default function Library() {
         {/* --- ADVANCED PAGINATION --- */}
         {!loading && totalPages > 1 && (
           <div className="flex flex-wrap justify-center items-center gap-2 mt-16 pb-10" dir="ltr">
-            <button disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)} className="p-3 bg-brand-surface border border-brand-border rounded-xl text-brand-secondary disabled:opacity-20 hover:border-brand-accent transition-all"><ChevronLeft size={20}/></button>
+            <button disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)} className="p-3 bg-brand-surface border border-brand-border rounded-xl text-brand-secondary disabled:opacity-20 hover:border-brand-accent transition-all"><ChevronLeft size={20} /></button>
             {getPageNumbers().map((p, idx) => (
               p === '...' ? (
-                <span key={`dots-${idx}`} className="px-2 text-brand-secondary"><MoreHorizontal size={18}/></span>
+                <span key={`dots-${idx}`} className="px-2 text-brand-secondary"><MoreHorizontal size={18} /></span>
               ) : (
                 <button
                   key={`page-${p}`}
@@ -336,7 +437,7 @@ export default function Library() {
                 </button>
               )
             ))}
-            <button disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)} className="p-3 bg-brand-surface border border-brand-border rounded-xl text-brand-secondary disabled:opacity-20 hover:border-brand-accent transition-all"><ChevronRight size={20}/></button>
+            <button disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)} className="p-3 bg-brand-surface border border-brand-border rounded-xl text-brand-secondary disabled:opacity-20 hover:border-brand-accent transition-all"><ChevronRight size={20} /></button>
           </div>
         )}
       </section>
