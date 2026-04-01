@@ -14,6 +14,7 @@ import { cn } from '@/src/utils/cn';
 import { getDatabase, syncWithPostgres, semanticSearch } from '@/src/utils/db';
 import SEO from '@/src/components/layout/SEO';
 import { RefreshCw, Sparkles } from 'lucide-react';
+import Book3D from '@/src/components/Book3D';
 
 export default function Library() {
   const { isSindhi } = useLanguage();
@@ -48,7 +49,7 @@ export default function Library() {
   });
 
   const [visibleColumns, setVisibleColumns] = useState({
-    icon: false, titleEn: false, titleSd: true, year: true,
+    icon: false, title: true, originalView: false, year: true,
     category: true, publisher: false, language: false, sourceName: true
   });
 
@@ -351,44 +352,86 @@ export default function Library() {
         ) : (
           viewMode === 'grid' ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8" dir={isSindhi ? 'rtl' : 'ltr'}>
-              {books.map((book) => (
-                <motion.div key={book.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => navigate(`/library/${book.id}`)} className="group bg-brand-surface rounded-[2.5rem] border border-brand-border overflow-hidden hover:border-brand-accent transition-all shadow-xl flex flex-col h-full cursor-pointer hover:-translate-y-2 relative">
-                  <div className="aspect-[3/4.5] relative overflow-hidden bg-brand-bg">
-                    {book.thumbnail ? <img src={book.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" /> : <BookIcon className="w-full h-full p-12 opacity-5" />}
+              {books.map((book) => {
+                let useSindhiLogic = isSindhi;
+                if (visibleColumns.originalView && book.language) {
+                  const langLower = book.language.toLowerCase();
+                  useSindhiLogic = ['sindhi', 'urdu', 'arabic', 'persian'].some(l => langLower.includes(l));
+                } else if (visibleColumns.originalView && !book.language) {
+                  useSindhiLogic = !!book.title_sd;
+                }
+
+                const displayTitle = useSindhiLogic ? (book.title_sd || book.title_en) : (book.title_en || book.title_sd);
+                const displayAuthor = useSindhiLogic ? (book.author_sd || book.author_en) : (book.author_en || book.author_sd);
+                const dir = useSindhiLogic ? 'rtl' : 'ltr';
+                const titleFontClass = useSindhiLogic ? "font-sindhi text-xl leading-snug" : "text-lg leading-snug";
+                const authorFontClass = useSindhiLogic ? "font-sindhi" : "";
+
+                return (
+                <motion.div key={book.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => navigate(`/library/${book.id}`)} className="group flex flex-col h-full cursor-pointer relative">
+                  <div className="aspect-[3/4.5] relative flex items-center justify-center">
+                    <Book3D 
+                      title={displayTitle} 
+                      thumbnailUrl={book.thumbnail}
+                      className="w-full h-full z-10" 
+                    />
                     {visibleColumns.year && (
-                      <div className="absolute top-4 right-4 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[9px] text-white font-bold border border-white/10" dir="ltr">
+                      <div className="absolute top-2 right-2 z-20 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[9px] text-white font-bold border border-white/10" dir="ltr">
                         {book.year}
                       </div>
                     )}
                   </div>
 
-                  <div className="p-6 space-y-3">
-                    <div>
-                      {/* Priority Title: Sindhi takes priority if visible, with proper RTL/Font */}
-                      <h3 className={cn(
-                        "text-brand-primary font-bold line-clamp-2", 
-                        visibleColumns.titleSd && book.title_sd ? "font-sindhi text-lg text-right" : "text-sm text-left"
-                      )} dir={visibleColumns.titleSd && book.title_sd ? "rtl" : "ltr"}>
-                        {visibleColumns.titleSd && book.title_sd ? book.title_sd : book.title_en}
+                  <div className="pt-6 pb-2 flex flex-col items-center text-center space-y-4">
+                    <div className="space-y-1 w-full flex flex-col items-center px-2">
+                      {/* Priority Title (Bold, Center, TOP) */}
+                      <h3 className={cn("text-brand-primary font-black truncate w-full", titleFontClass)} dir={dir} title={displayTitle}>
+                        {displayTitle}
                       </h3>
-                      
-                      {/* Priority Author */}
-                      <p className={cn(
-                        "text-brand-secondary mt-1 font-semibold", 
-                        visibleColumns.titleSd && book.author_sd ? "font-sindhi text-xs text-right" : "text-[10px] text-left"
-                      )} dir={visibleColumns.titleSd && book.author_sd ? "rtl" : "ltr"}>
-                        {visibleColumns.titleSd && book.author_sd ? book.author_sd : book.author_en}
+
+                      {/* Priority Author (BELOW Title) */}
+                      <p className={cn("text-brand-secondary text-xs sm:text-sm font-semibold tracking-wide mt-1 truncate w-full", authorFontClass)} dir={dir} title={displayAuthor}>
+                        <span className="opacity-60 font-medium">{useSindhiLogic ? "ليکڪ : " : "By : "}</span> 
+                        {displayAuthor}
                       </p>
                     </div>
-                    <div className="pt-3 border-t border-brand-border/20 space-y-1" dir="ltr">
-                      {visibleColumns.category && <div className="flex items-center gap-2 text-brand-secondary"><Tag size={10} className="text-brand-accent" /><span className="text-[9px] font-bold truncate text-left">{book.category}</span></div>}
-                      {visibleColumns.publisher && <div className="flex items-center gap-2 text-brand-secondary"><Building size={10} className="text-brand-accent" /><span className="text-[9px] font-bold truncate text-left">{book.publisher}</span></div>}
-                      {visibleColumns.language && <div className="flex items-center gap-2 text-brand-secondary"><Globe size={10} className="text-brand-accent" /><span className="text-[9px] font-bold truncate text-left">{book.language}</span></div>}
-                      {visibleColumns.sourceName && <div className="inline-block mt-2 px-2 py-0.5 bg-brand-bg border border-brand-border rounded text-[8px] font-bold text-brand-accent text-left">{book.source_name || 'Archive'}</div>}
+
+                    {/* Stats Floating Container */}
+                    <div className="w-[90%] max-w-[300px] bg-brand-surface border border-brand-border/40 rounded-[1.2rem] py-3 px-2 flex flex-row items-center justify-evenly shadow-sm opacity-90 group-hover:opacity-100 transition-all duration-300 group-hover:-translate-y-1" dir="ltr">
+                      
+                      {visibleColumns.year && (
+                        <div className="flex flex-col items-center flex-1 overflow-hidden">
+                          <span className="text-brand-accent font-black text-sm lg:text-base">{book.year || "---"}</span>
+                          <span className="text-brand-secondary text-[9px] uppercase tracking-wider mt-1">{isSindhi ? "سال" : "Year"}</span>
+                        </div>
+                      )}
+
+                      {(visibleColumns.year && visibleColumns.category) && <div className="w-[1px] h-6 bg-brand-border/60"></div>}
+
+                      {visibleColumns.category && (
+                        <div className="flex flex-col items-center flex-1 overflow-hidden px-1 pointer-events-auto cursor-help" title={book.category || "General"}>
+                          <span className="text-brand-accent font-black text-sm lg:text-base truncate w-full text-center">
+                            {book.category || "General"}
+                          </span>
+                          <span className="text-brand-secondary text-[9px] uppercase tracking-wider mt-1">{isSindhi ? "ڪيٽيگري" : "Category"}</span>
+                        </div>
+                      )}
+
+                      {(visibleColumns.category && visibleColumns.language) && <div className="w-[1px] h-6 bg-brand-border/60"></div>}
+                      {(!visibleColumns.category && visibleColumns.year && visibleColumns.language) && <div className="w-[1px] h-6 bg-brand-border/60"></div>}
+
+                      {visibleColumns.language && (
+                        <div className="flex flex-col items-center flex-1 overflow-hidden pointer-events-auto cursor-help" title={book.language || "N/A"}>
+                          <span className="text-brand-accent font-black text-sm lg:text-base uppercase w-full truncate text-center">{book.language || "N/A"}</span>
+                          <span className="text-brand-secondary text-[9px] uppercase tracking-wider mt-1">{isSindhi ? "ٻولي" : "Lang"}</span>
+                        </div>
+                      )}
+
                     </div>
                   </div>
                 </motion.div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="w-full overflow-x-auto rounded-[2.5rem] border border-brand-border bg-brand-surface/20" dir="ltr">
@@ -396,8 +439,7 @@ export default function Library() {
                 <thead>
                   <tr className="bg-brand-surface border-b border-brand-border text-[10px] uppercase font-bold text-brand-secondary tracking-widest">
                     {visibleColumns.icon && <th className="p-5">Icon</th>}
-                    {visibleColumns.titleEn && <th className="p-5 text-left">English Details</th>}
-                    {visibleColumns.titleSd && <th className="p-5 text-right">سنڌي تفصيل</th>}
+                    {visibleColumns.title && <th className={cn("p-5", isSindhi ? "text-right" : "text-left")}>{isSindhi ? "ڪتاب جو تفصيل" : "Book Details"}</th>}
                     {visibleColumns.year && <th className="p-5 text-center">Year</th>}
                     {visibleColumns.category && <th className="p-5">Category</th>}
                     {visibleColumns.publisher && <th className="p-5">Publisher</th>}
@@ -406,18 +448,34 @@ export default function Library() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-brand-border/30">
-                  {books.map((book) => (
+                  {books.map((book) => {
+                    let useSindhiLogic = isSindhi;
+                    if (visibleColumns.originalView && book.language) {
+                      const langLower = book.language.toLowerCase();
+                      useSindhiLogic = ['sindhi', 'urdu', 'arabic', 'persian'].some(l => langLower.includes(l));
+                    } else if (visibleColumns.originalView && !book.language) {
+                      useSindhiLogic = !!book.title_sd;
+                    }
+                    const displayTitle = useSindhiLogic ? (book.title_sd || book.title_en) : (book.title_en || book.title_sd);
+                    const displayAuthor = useSindhiLogic ? (book.author_sd || book.author_en) : (book.author_en || book.author_sd);
+
+                    return (
                     <tr key={book.id} onClick={() => navigate(`/library/${book.id}`)} className="hover:bg-brand-accent/5 cursor-pointer transition-colors">
-                      {visibleColumns.icon && <td className="p-4"><div className="w-10 h-14 bg-brand-bg rounded overflow-hidden">{book.thumbnail && <img src={book.thumbnail} className="w-full h-full object-cover" />}</div></td>}
-                      {visibleColumns.titleEn && <td className="p-5 text-left"><div className="text-sm font-bold text-brand-primary line-clamp-1">{book.title_en}</div><div className="text-[10px] text-brand-secondary">{book.author_en}</div></td>}
-                      {visibleColumns.titleSd && <td className="p-5 text-right" dir="rtl"><div className="font-sindhi text-xl font-bold text-brand-primary line-clamp-1">{book.title_sd}</div><div className="font-sindhi text-xs text-brand-accent">{book.author_sd}</div></td>}
+                      {visibleColumns.icon && <td className="p-4"><div className="w-10 h-14 bg-brand-bg rounded overflow-hidden flex items-center justify-center"><Book3D title={displayTitle} thumbnailUrl={book.thumbnail} className="w-full h-full scale-[0.9]" /></div></td>}
+                      {visibleColumns.title && (
+                        <td className={cn("p-5 max-w-[250px]", useSindhiLogic ? "text-right" : "text-left")} dir={useSindhiLogic ? "rtl" : "ltr"}>
+                          <div className={cn("font-bold text-brand-primary truncate w-full cursor-help", useSindhiLogic ? "font-sindhi text-xl" : "text-sm")} title={displayTitle}>{displayTitle}</div>
+                          <div className={cn("text-xs text-brand-secondary truncate w-full mt-1 cursor-help", useSindhiLogic ? "font-sindhi text-brand-accent" : "text-[10px]")} title={displayAuthor}>{displayAuthor}</div>
+                        </td>
+                      )}
                       {visibleColumns.year && <td className="p-5 text-center text-xs font-bold">{book.year}</td>}
-                      {visibleColumns.category && <td className="p-5 text-xs text-brand-secondary">{book.category}</td>}
-                      {visibleColumns.publisher && <td className="p-5 text-xs text-brand-secondary">{book.publisher}</td>}
-                      {visibleColumns.language && <td className="p-5 text-xs text-brand-secondary">{book.language}</td>}
-                      {visibleColumns.sourceName && <td className="p-5"><span className="px-2 py-1 bg-brand-accent/10 text-brand-accent rounded text-[10px] font-bold">{book.source_name}</span></td>}
+                      {visibleColumns.category && <td className="p-5 text-xs text-brand-secondary max-w-[150px] truncate cursor-help" title={book.category}>{book.category}</td>}
+                      {visibleColumns.publisher && <td className="p-5 text-xs text-brand-secondary max-w-[150px] truncate cursor-help" title={book.publisher}>{book.publisher}</td>}
+                      {visibleColumns.language && <td className="p-5 text-xs text-brand-secondary max-w-[100px] truncate cursor-help" title={book.language}>{book.language}</td>}
+                      {visibleColumns.sourceName && <td className="p-5"><span className="px-2 py-1 bg-brand-accent/10 text-brand-accent rounded text-[10px] font-bold max-w-[120px] truncate inline-block cursor-help" title={book.source_name}>{book.source_name}</span></td>}
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
