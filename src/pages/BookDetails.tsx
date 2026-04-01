@@ -17,6 +17,7 @@ import { cn } from "@/src/utils/cn";
 import { getDatabase } from "@/src/utils/db";
 import ShareButton from "@/src/components/ShareButton";
 import SEO from "@/src/components/layout/SEO";
+import Book3D from "@/src/components/Book3D";
 
 export default function BookDetails() {
   const { id } = useParams();
@@ -111,16 +112,13 @@ export default function BookDetails() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="relative aspect-[3/4.5] rounded-[2.5rem] overflow-hidden shadow-2xl bg-brand-surface border border-brand-border mx-auto max-w-[320px] lg:max-w-full"
+              className="relative aspect-[3/4.5] rounded-[2.5rem] overflow-hidden mx-auto max-w-[320px] lg:max-w-full flex items-center justify-center p-4"
             >
-              {book.thumbnail ? (
-                <img src={book.thumbnail} className="w-full h-full object-cover" alt="Cover" />
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center bg-brand-surface text-brand-secondary opacity-30">
-                  <BookIcon className="w-20 h-20 mb-4" />
-                  <span className="uppercase tracking-widest text-xs font-bold">No Preview</span>
-                </div>
-              )}
+              <Book3D 
+                title={book.title_en || book.title_sd} 
+                thumbnailUrl={book.thumbnail} 
+                className="w-full h-full"
+              />
             </motion.div>
           </div>
 
