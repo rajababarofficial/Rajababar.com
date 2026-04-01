@@ -45,7 +45,7 @@ export default function Library() {
   const [showColumnSettings, setShowColumnSettings] = useState(false);
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
-    return typeof window !== 'undefined' ? (sessionStorage.getItem('lib_view') as 'grid'|'list') || 'grid' : 'grid';
+    return typeof window !== 'undefined' ? (sessionStorage.getItem('lib_view') as 'grid' | 'list') || 'grid' : 'grid';
   });
 
   const [visibleColumns, setVisibleColumns] = useState({
@@ -67,19 +67,19 @@ export default function Library() {
     sessionStorage.setItem('lib_view', viewMode);
   }, [searchTerm, currentPage, filters, viewMode]);
 
-    // Fetch Global Count from Postgres
-    useEffect(() => {
-      const fetchGlobalInfo = async () => {
-        try {
-          const res = await fetch('/api/library/info');
-          if (res.ok) {
-            const data = await res.json();
-            setGlobalTotal(data.total);
-          }
-        } catch (err) { }
-      };
-      fetchGlobalInfo();
-    }, []);
+  // Fetch Global Count from Postgres
+  useEffect(() => {
+    const fetchGlobalInfo = async () => {
+      try {
+        const res = await fetch('/api/library/info');
+        if (res.ok) {
+          const data = await res.json();
+          setGlobalTotal(data.total);
+        }
+      } catch (err) { }
+    };
+    fetchGlobalInfo();
+  }, []);
 
   // 1. Sync & Init Logic
   useEffect(() => {
@@ -227,9 +227,9 @@ export default function Library() {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 bg-brand-accent/10 text-brand-accent px-4 py-2 rounded-full border border-brand-accent/20">
             <LibraryIcon size={16} />
-            <span className="text-sm font-bold tracking-widest uppercase">
-              {searchTerm || Object.values(filters).some(v => v !== '') 
-                ? `Search Result: ` 
+            <span className="text-sm font-bold tracking-widest ">
+              {searchTerm || Object.values(filters).some(v => v !== '')
+                ? `Search Result: `
                 : `Total Books: `}
               <span className="text-brand-primary">
                 {searchTerm || Object.values(filters).some(v => v !== '') ? totalCount : (globalTotal || totalCount)}
@@ -261,12 +261,12 @@ export default function Library() {
                 )}
                 title="AI Powered Semantic Search (pgvector)"
               >
-                <Sparkles size={20}/>
-                <span className="text-xs font-bold uppercase hidden md:inline">Semantic AI</span>
+                <Sparkles size={20} />
+                <span className="text-xs font-bold  hidden md:inline">Semantic AI</span>
               </button>
 
               <button onClick={() => setShowColumnSettings(!showColumnSettings)} className={cn("p-4 rounded-2xl border transition-all flex items-center gap-2", showColumnSettings ? "bg-brand-accent text-white" : "bg-brand-surface border-brand-border text-brand-primary")}>
-                <Settings2 size={20}/> <span className="text-xs font-bold uppercase hidden md:inline">Display</span>
+                <Settings2 size={20} /> <span className="text-xs font-bold  hidden md:inline">Display</span>
               </button>
               <button onClick={() => setShowFilters(!showFilters)} className={cn("p-4 rounded-2xl border transition-all", showFilters ? "bg-brand-accent text-white" : "bg-brand-surface border-brand-border text-brand-primary")}><Filter size={20} /></button>
               <div className="flex bg-brand-bg/50 p-1 border border-brand-border rounded-2xl">
@@ -281,7 +281,7 @@ export default function Library() {
               <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
                 <div className="flex flex-wrap gap-2 mt-6 p-4 bg-brand-bg/40 rounded-2xl border border-brand-border/40">
                   {Object.keys(visibleColumns).map((col) => (
-                    <button key={col} onClick={() => setVisibleColumns(prev => ({ ...prev, [col]: !prev[col] }))} className={cn("px-4 py-2 rounded-full text-[10px] font-bold border transition-all uppercase", visibleColumns[col] ? "bg-brand-accent/20 border-brand-accent text-brand-accent" : "bg-brand-surface border-brand-border text-brand-secondary")}>
+                    <button key={col} onClick={() => setVisibleColumns(prev => ({ ...prev, [col]: !prev[col] }))} className={cn("px-4 py-2 rounded-full text-[10px] font-bold border transition-all ", visibleColumns[col] ? "bg-brand-accent/20 border-brand-accent text-brand-accent" : "bg-brand-surface border-brand-border text-brand-secondary")}>
                       {col}
                     </button>
                   ))}
@@ -319,7 +319,7 @@ export default function Library() {
                 <div className="flex justify-end mt-6 pt-4 border-t border-brand-border/20">
                   <button
                     onClick={clearFilters}
-                    className="flex items-center gap-2 px-6 py-2 bg-brand-accent/10 hover:bg-brand-accent text-brand-accent hover:text-white border border-brand-accent/20 rounded-xl text-[10px] font-bold uppercase transition-all"
+                    className="flex items-center gap-2 px-6 py-2 bg-brand-accent/10 hover:bg-brand-accent text-brand-accent hover:text-white border border-brand-accent/20 rounded-xl text-[10px] font-bold  transition-all"
                   >
                     Clear All Filters
                   </button>
@@ -334,16 +334,16 @@ export default function Library() {
       <section className="max-w-7xl mx-auto px-4 mt-8 min-h-[500px]">
         {isInitializing ? (
           <div className="flex flex-col items-center justify-center py-40 space-y-6 text-center">
-             <div className="relative">
-               <RefreshCw size={80} className="text-brand-accent animate-spin opacity-20" />
-               <BookOpen size={40} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-brand-accent animate-pulse" />
-             </div>
-             <div>
-               <h2 className="text-2xl font-bold text-brand-primary mb-2">Initializing Digital Library</h2>
-               <p className="text-brand-secondary text-sm max-w-sm mx-auto">
-                 We are preparing the local database for fast searching. This might take a few seconds on first load.
-               </p>
-             </div>
+            <div className="relative">
+              <RefreshCw size={80} className="text-brand-accent animate-spin opacity-20" />
+              <BookOpen size={40} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-brand-accent animate-pulse" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-brand-primary mb-2">Initializing Digital Library</h2>
+              <p className="text-brand-secondary text-sm max-w-sm mx-auto">
+                We are preparing the local database for fast searching. This might take a few seconds on first load.
+              </p>
+            </div>
           </div>
         ) : loading ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 animate-pulse text-left">
@@ -351,7 +351,7 @@ export default function Library() {
           </div>
         ) : (
           viewMode === 'grid' ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8" dir={isSindhi ? 'rtl' : 'ltr'}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8" dir={isSindhi ? 'rtl' : 'ltr'}>
               {books.map((book) => {
                 let useSindhiLogic = isSindhi;
                 if (visibleColumns.originalView && book.language) {
@@ -368,68 +368,68 @@ export default function Library() {
                 const authorFontClass = useSindhiLogic ? "font-sindhi" : "";
 
                 return (
-                <motion.div key={book.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => navigate(`/library/${book.id}`)} className="group flex flex-col h-full cursor-pointer relative">
-                  <div className="aspect-[3/4.5] relative flex items-center justify-center">
-                    <Book3D 
-                      title={displayTitle} 
-                      thumbnailUrl={book.thumbnail}
-                      className="w-full h-full z-10" 
-                    />
-                    {visibleColumns.year && (
-                      <div className="absolute top-2 right-2 z-20 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[9px] text-white font-bold border border-white/10" dir="ltr">
-                        {book.year}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="pt-6 pb-2 flex flex-col items-center text-center space-y-4">
-                    <div className="space-y-1 w-full flex flex-col items-center px-2">
-                      {/* Priority Title (Bold, Center, TOP) */}
-                      <h3 className={cn("text-brand-primary font-black truncate w-full", titleFontClass)} dir={dir} title={displayTitle}>
-                        {displayTitle}
-                      </h3>
-
-                      {/* Priority Author (BELOW Title) */}
-                      <p className={cn("text-brand-secondary text-xs sm:text-sm font-semibold tracking-wide mt-1 truncate w-full", authorFontClass)} dir={dir} title={displayAuthor}>
-                        <span className="opacity-60 font-medium">{useSindhiLogic ? "ليکڪ : " : "By : "}</span> 
-                        {displayAuthor}
-                      </p>
-                    </div>
-
-                    {/* Stats Floating Container */}
-                    <div className="w-[90%] max-w-[300px] bg-brand-surface border border-brand-border/40 rounded-[1.2rem] py-3 px-2 flex flex-row items-center justify-evenly shadow-sm opacity-90 group-hover:opacity-100 transition-all duration-300 group-hover:-translate-y-1" dir="ltr">
-                      
+                  <motion.div key={book.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => navigate(`/library/${book.id}`)} className="group flex flex-col h-full cursor-pointer relative">
+                    <div className="aspect-[3/4.5] relative flex items-center justify-center">
+                      <Book3D
+                        title={displayTitle}
+                        thumbnailUrl={book.thumbnail}
+                        className="w-full h-full z-10"
+                      />
                       {visibleColumns.year && (
-                        <div className="flex flex-col items-center flex-1 overflow-hidden">
-                          <span className="text-brand-accent font-black text-sm lg:text-base">{book.year || "---"}</span>
-                          <span className="text-brand-secondary text-[9px] uppercase tracking-wider mt-1">{isSindhi ? "سال" : "Year"}</span>
+                        <div className="absolute top-2 right-2 z-20 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[9px] text-white font-bold border border-white/10" dir="ltr">
+                          {book.year}
                         </div>
                       )}
-
-                      {(visibleColumns.year && visibleColumns.category) && <div className="w-[1px] h-6 bg-brand-border/60"></div>}
-
-                      {visibleColumns.category && (
-                        <div className="flex flex-col items-center flex-1 overflow-hidden px-1 pointer-events-auto cursor-help" title={book.category || "General"}>
-                          <span className="text-brand-accent font-black text-sm lg:text-base truncate w-full text-center">
-                            {book.category || "General"}
-                          </span>
-                          <span className="text-brand-secondary text-[9px] uppercase tracking-wider mt-1">{isSindhi ? "ڪيٽيگري" : "Category"}</span>
-                        </div>
-                      )}
-
-                      {(visibleColumns.category && visibleColumns.language) && <div className="w-[1px] h-6 bg-brand-border/60"></div>}
-                      {(!visibleColumns.category && visibleColumns.year && visibleColumns.language) && <div className="w-[1px] h-6 bg-brand-border/60"></div>}
-
-                      {visibleColumns.language && (
-                        <div className="flex flex-col items-center flex-1 overflow-hidden pointer-events-auto cursor-help" title={book.language || "N/A"}>
-                          <span className="text-brand-accent font-black text-sm lg:text-base uppercase w-full truncate text-center">{book.language || "N/A"}</span>
-                          <span className="text-brand-secondary text-[9px] uppercase tracking-wider mt-1">{isSindhi ? "ٻولي" : "Lang"}</span>
-                        </div>
-                      )}
-
                     </div>
-                  </div>
-                </motion.div>
+
+                    <div className="pt-6 pb-2 flex flex-col items-center text-center space-y-4">
+                      <div className="space-y-1 w-full flex flex-col items-center px-2">
+                        {/* Priority Title (Bold, Center, TOP) */}
+                        <h3 className={cn("text-brand-primary font-black truncate w-full", titleFontClass)} dir={dir} title={displayTitle}>
+                          {displayTitle}
+                        </h3>
+
+                        {/* Priority Author (BELOW Title) */}
+                        <p className={cn("text-brand-secondary text-xs sm:text-sm font-semibold tracking-wide mt-1 truncate w-full", authorFontClass)} dir={dir} title={displayAuthor}>
+                          <span className="opacity-60 font-medium">{useSindhiLogic ? "ليکڪ : " : "By : "}</span>
+                          {displayAuthor}
+                        </p>
+                      </div>
+
+                      {/* Stats Floating Container */}
+                      <div className="w-[90%] max-w-[300px] bg-brand-surface border border-brand-border/40 rounded-[1.2rem] py-3 px-2 flex flex-row items-center justify-evenly shadow-sm opacity-90 group-hover:opacity-100 transition-all duration-300 group-hover:-translate-y-1" dir="ltr">
+
+                        {visibleColumns.year && (
+                          <div className="flex flex-col items-center flex-1 overflow-hidden">
+                            <span className="text-brand-accent font-black text-sm lg:text-base">{book.year || "---"}</span>
+                            <span className="text-brand-secondary text-[9px]  tracking-wider mt-1">{isSindhi ? "سال" : "Year"}</span>
+                          </div>
+                        )}
+
+                        {(visibleColumns.year && visibleColumns.category) && <div className="w-[1px] h-6 bg-brand-border/60"></div>}
+
+                        {visibleColumns.category && (
+                          <div className="flex flex-col items-center flex-1 overflow-hidden px-1 pointer-events-auto cursor-help" title={book.category || "General"}>
+                            <span className="text-brand-accent font-black text-sm lg:text-base truncate w-full text-center">
+                              {book.category || "General"}
+                            </span>
+                            <span className="text-brand-secondary text-[9px]  tracking-wider mt-1">{isSindhi ? "ڪيٽيگري" : "Category"}</span>
+                          </div>
+                        )}
+
+                        {(visibleColumns.category && visibleColumns.language) && <div className="w-[1px] h-6 bg-brand-border/60"></div>}
+                        {(!visibleColumns.category && visibleColumns.year && visibleColumns.language) && <div className="w-[1px] h-6 bg-brand-border/60"></div>}
+
+                        {visibleColumns.language && (
+                          <div className="flex flex-col items-center flex-1 overflow-hidden pointer-events-auto cursor-help" title={book.language || "N/A"}>
+                            <span className="text-brand-accent font-black text-sm lg:text-base  w-full truncate text-center">{book.language || "N/A"}</span>
+                            <span className="text-brand-secondary text-[9px]  tracking-wider mt-1">{isSindhi ? "ٻولي" : "Lang"}</span>
+                          </div>
+                        )}
+
+                      </div>
+                    </div>
+                  </motion.div>
                 );
               })}
             </div>
@@ -437,7 +437,7 @@ export default function Library() {
             <div className="w-full overflow-x-auto rounded-[2.5rem] border border-brand-border bg-brand-surface/20" dir="ltr">
               <table className="w-full text-left border-collapse min-w-[900px]">
                 <thead>
-                  <tr className="bg-brand-surface border-b border-brand-border text-[10px] uppercase font-bold text-brand-secondary tracking-widest">
+                  <tr className="bg-brand-surface border-b border-brand-border text-[10px]  font-bold text-brand-secondary tracking-widest">
                     {visibleColumns.icon && <th className="p-5">Icon</th>}
                     {visibleColumns.title && <th className={cn("p-5", isSindhi ? "text-right" : "text-left")}>{isSindhi ? "ڪتاب جو تفصيل" : "Book Details"}</th>}
                     {visibleColumns.year && <th className="p-5 text-center">Year</th>}
@@ -460,20 +460,20 @@ export default function Library() {
                     const displayAuthor = useSindhiLogic ? (book.author_sd || book.author_en) : (book.author_en || book.author_sd);
 
                     return (
-                    <tr key={book.id} onClick={() => navigate(`/library/${book.id}`)} className="hover:bg-brand-accent/5 cursor-pointer transition-colors">
-                      {visibleColumns.icon && <td className="p-4"><div className="w-10 h-14 bg-brand-bg rounded overflow-hidden flex items-center justify-center"><Book3D title={displayTitle} thumbnailUrl={book.thumbnail} className="w-full h-full scale-[0.9]" /></div></td>}
-                      {visibleColumns.title && (
-                        <td className={cn("p-5 max-w-[250px]", useSindhiLogic ? "text-right" : "text-left")} dir={useSindhiLogic ? "rtl" : "ltr"}>
-                          <div className={cn("font-bold text-brand-primary truncate w-full cursor-help", useSindhiLogic ? "font-sindhi text-xl" : "text-sm")} title={displayTitle}>{displayTitle}</div>
-                          <div className={cn("text-xs text-brand-secondary truncate w-full mt-1 cursor-help", useSindhiLogic ? "font-sindhi text-brand-accent" : "text-[10px]")} title={displayAuthor}>{displayAuthor}</div>
-                        </td>
-                      )}
-                      {visibleColumns.year && <td className="p-5 text-center text-xs font-bold">{book.year}</td>}
-                      {visibleColumns.category && <td className="p-5 text-xs text-brand-secondary max-w-[150px] truncate cursor-help" title={book.category}>{book.category}</td>}
-                      {visibleColumns.publisher && <td className="p-5 text-xs text-brand-secondary max-w-[150px] truncate cursor-help" title={book.publisher}>{book.publisher}</td>}
-                      {visibleColumns.language && <td className="p-5 text-xs text-brand-secondary max-w-[100px] truncate cursor-help" title={book.language}>{book.language}</td>}
-                      {visibleColumns.sourceName && <td className="p-5"><span className="px-2 py-1 bg-brand-accent/10 text-brand-accent rounded text-[10px] font-bold max-w-[120px] truncate inline-block cursor-help" title={book.source_name}>{book.source_name}</span></td>}
-                    </tr>
+                      <tr key={book.id} onClick={() => navigate(`/library/${book.id}`)} className="hover:bg-brand-accent/5 cursor-pointer transition-colors">
+                        {visibleColumns.icon && <td className="p-4"><div className="w-10 h-14 bg-brand-bg rounded overflow-hidden flex items-center justify-center"><Book3D title={displayTitle} thumbnailUrl={book.thumbnail} className="w-full h-full scale-[0.9]" /></div></td>}
+                        {visibleColumns.title && (
+                          <td className={cn("p-5 max-w-[250px]", useSindhiLogic ? "text-right" : "text-left")} dir={useSindhiLogic ? "rtl" : "ltr"}>
+                            <div className={cn("font-bold text-brand-primary truncate w-full cursor-help", useSindhiLogic ? "font-sindhi text-xl" : "text-sm")} title={displayTitle}>{displayTitle}</div>
+                            <div className={cn("text-xs text-brand-secondary truncate w-full mt-1 cursor-help", useSindhiLogic ? "font-sindhi text-brand-accent" : "text-[10px]")} title={displayAuthor}>{displayAuthor}</div>
+                          </td>
+                        )}
+                        {visibleColumns.year && <td className="p-5 text-center text-xs font-bold">{book.year}</td>}
+                        {visibleColumns.category && <td className="p-5 text-xs text-brand-secondary max-w-[150px] truncate cursor-help" title={book.category}>{book.category}</td>}
+                        {visibleColumns.publisher && <td className="p-5 text-xs text-brand-secondary max-w-[150px] truncate cursor-help" title={book.publisher}>{book.publisher}</td>}
+                        {visibleColumns.language && <td className="p-5 text-xs text-brand-secondary max-w-[100px] truncate cursor-help" title={book.language}>{book.language}</td>}
+                        {visibleColumns.sourceName && <td className="p-5"><span className="px-2 py-1 bg-brand-accent/10 text-brand-accent rounded text-[10px] font-bold max-w-[120px] truncate inline-block cursor-help" title={book.source_name}>{book.source_name}</span></td>}
+                      </tr>
                     );
                   })}
                 </tbody>
