@@ -30,6 +30,8 @@
   --brand-bg: #09090b;
   --brand-surface: #18181b;
   --brand-border: #27272a;
+  --book-shadow: rgba(255, 255, 255, 0.15);
+  --book-shadow-hover: rgba(255, 255, 255, 0.25);
 }
 
 .light {
@@ -38,6 +40,8 @@
   --brand-bg: #f2f2f7;
   --brand-surface: #ffffff;
   --brand-border: #d1d1d6;
+  --book-shadow: rgba(0, 0, 0, 0.3);
+  --book-shadow-hover: rgba(0, 0, 0, 0.25);
 }
 
 @layer base {
