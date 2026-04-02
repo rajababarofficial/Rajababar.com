@@ -375,11 +375,6 @@ export default function Library() {
                         thumbnailUrl={book.thumbnail}
                         className="w-full h-full z-10"
                       />
-                      {visibleColumns.year && (
-                        <div className="absolute top-2 right-2 z-20 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[9px] text-white font-bold border border-white/10" dir="ltr">
-                          {book.year}
-                        </div>
-                      )}
                     </div>
 
                     <div className="pt-6 pb-2 flex flex-col items-center text-center space-y-4">
@@ -394,6 +389,20 @@ export default function Library() {
                           <span className="opacity-60 font-medium">{useSindhiLogic ? "ليکڪ : " : "By : "}</span>
                           {displayAuthor}
                         </p>
+
+                        {/* Additional info below author */}
+                        {visibleColumns.publisher && book.publisher && (
+                          <p className={cn("text-brand-secondary/80 text-[11px] mt-1 truncate w-full", authorFontClass)} dir={dir} title={book.publisher}>
+                            <span className="opacity-60">{useSindhiLogic ? "ڇپائيندڙ : " : "Publisher: "}</span>
+                            {book.publisher}
+                          </p>
+                        )}
+
+                        {visibleColumns.sourceName && book.source_name && (
+                          <p className="text-brand-accent/80 text-[10px] font-bold tracking-wider mt-1.5 truncate w-full uppercase" dir="ltr" title={book.source_name}>
+                            {book.source_name}
+                          </p>
+                        )}
                       </div>
 
                       {/* Stats Floating Container */}
@@ -461,7 +470,17 @@ export default function Library() {
 
                     return (
                       <tr key={book.id} onClick={() => navigate(`/library/${book.id}`)} className="hover:bg-brand-accent/5 cursor-pointer transition-colors">
-                        {visibleColumns.icon && <td className="p-4"><div className="w-10 h-14 bg-brand-bg rounded overflow-hidden flex items-center justify-center"><Book3D title={displayTitle} thumbnailUrl={book.thumbnail} className="w-full h-full scale-[0.9]" /></div></td>}
+                        {visibleColumns.icon && (
+                          <td className="p-4">
+                            <div className="w-10 h-14 bg-brand-surface rounded overflow-hidden flex items-center justify-center shadow-sm border border-brand-border/50 relative mx-auto">
+                              {book.thumbnail ? (
+                                <img src={book.thumbnail} alt={displayTitle} className="w-full h-full object-cover" />
+                              ) : (
+                                <BookIcon className="w-5 h-5 text-brand-secondary/40" />
+                              )}
+                            </div>
+                          </td>
+                        )}
                         {visibleColumns.title && (
                           <td className={cn("p-5 max-w-[250px]", useSindhiLogic ? "text-right" : "text-left")} dir={useSindhiLogic ? "rtl" : "ltr"}>
                             <div className={cn("font-bold text-brand-primary truncate w-full cursor-help", useSindhiLogic ? "font-sindhi text-xl" : "text-sm")} title={displayTitle}>{displayTitle}</div>

@@ -26,7 +26,7 @@ export default function Book3D({ className = "w-full h-full", title, thumbnailUr
              3px 3px 0px #e4e4e7,
              4px 4px 0px #d4d4d8,
              5px 5px 0px #a1a1aa,
-             -10px 15px 25px rgba(0, 0, 0, 0.3)
+             -10px 15px 25px var(--book-shadow)
            `
         }}
         initial={{ rotateX: 0, rotateY: 0, rotateZ: 0 }}
@@ -42,7 +42,7 @@ export default function Book3D({ className = "w-full h-full", title, thumbnailUr
              3px 3px 0px #e4e4e7,
              4px 4px 0px #d4d4d8,
              5px 5px 0px #a1a1aa,
-             -15px 25px 35px rgba(0, 0, 0, 0.25)
+             -15px 25px 35px var(--book-shadow-hover)
           `,
           transition: { duration: 0.3, ease: "easeOut" }
         }}
