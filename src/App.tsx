@@ -25,6 +25,9 @@ const Contact = lazy(() => import('@/src/pages/Contact'));
 // Library Pages
 const Library = lazy(() => import('@/src/pages/Library')); // All in one page
 
+// Archive Pages
+const Mega = lazy(() => import('@/src/pages/Mega'));
+
 // Detail Pages
 const BookDetails = lazy(() => import('@/src/pages/BookDetails'));
 
@@ -51,6 +54,9 @@ export default function App() {
                 {/* 1. Main Library (Integrated Postgres/SQLite) */}
                 <Route path="/library" element={<PageWrapper><Library /></PageWrapper>} />
                 <Route path="/library/:id" element={<PageWrapper><BookDetails /></PageWrapper>} />
+
+                {/* 2. Mega Archive */}
+                <Route path="/mega" element={<PageWrapper><Mega /></PageWrapper>} />
 
                 {/* Tools & Projects */}
                 <Route path="/projects" element={<PageWrapper><Projects /></PageWrapper>} />

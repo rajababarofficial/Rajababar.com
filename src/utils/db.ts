@@ -48,6 +48,24 @@ const idbGet = async <T>(key: string): Promise<T | null> => {
   });
 };
 
+const idbDelete = async (key: string) => {
+  const idb = await openIDB();
+  return new Promise<void>((resolve, reject) => {
+    const tx = idb.transaction('keyvalue', 'readwrite');
+    tx.objectStore('keyvalue').delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+};
+
+// Clear local DB - call this to force re-download from server
+export const clearLocalDatabase = async () => {
+  dbInstance = null;
+  await idbDelete(DB_KEY);
+  await idbDelete(META_KEY);
+  console.log('🗑️ Local database cleared. Refresh to re-download.');
+};
+
 // ─────────────────────────────────────────────
 // Internal helpers
 // ─────────────────────────────────────────────
