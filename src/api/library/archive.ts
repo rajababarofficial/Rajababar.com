@@ -21,28 +21,43 @@ export const archiveListHandler = async (req: Request, res: Response) => {
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = Math.min(Math.max(1, Number(req.query.limit) || 20), 100);
     const search = (req.query.search as string || '').trim();
+    const year = (req.query.year as string || '').trim();
+    const employee = (req.query.employee as string || '').trim();
+    const month = (req.query.month as string || '').trim();
     const offset = (page - 1) * limit;
 
     const client = await getPool().connect();
     
     try {
-      // Table already exists with user's schema:
-      // "ID", "Source_Table", "Employee_Name", "Path", "Folder", "Status", 
-      // "Year", "Month", "File_Hash", "Storage_Link", "Is_Master", "Created_At", 
-      // "File Name", "Designation"
-
-      // Build WHERE clause for search
-      let whereClause = '';
+      // Build WHERE clause
+      const conditions: string[] = [];
       const params: any[] = [];
-      const searchFields = ['"File Name"', '"Employee_Name"', '"Path"', '"Designation"', '"Folder"', '"Source_Table"', '"Status"'];
       
+      // Search (File Name only)
       if (search) {
-        const searchConditions = searchFields.map((field) => {
-          params.push(`%${search}%`);
-          return `${field} ILIKE $${params.length}`;
-        });
-        whereClause = `WHERE ${searchConditions.join(' OR ')}`;
+        params.push(`%${search}%`);
+        conditions.push(`"File Name" ILIKE $${params.length}`);
       }
+      
+      // Year filter - partial match
+      if (year) {
+        params.push(`%${year}%`);
+        conditions.push(`"Year"::text ILIKE $${params.length}`);
+      }
+      
+      // Employee filter - partial match
+      if (employee) {
+        params.push(`%${employee}%`);
+        conditions.push(`"Employee_Name" ILIKE $${params.length}`);
+      }
+      
+      // Month filter - partial match
+      if (month) {
+        params.push(`%${month}%`);
+        conditions.push(`"Month"::text ILIKE $${params.length}`);
+      }
+      
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
       // Get total count
       const countResult = await client.query(
@@ -87,5 +102,32 @@ export const archiveListHandler = async (req: Request, res: Response) => {
   } catch (err: any) {
     console.error('❌ Archive API Error:', err.message);
     res.status(500).json({ error: 'Failed to fetch archive data', detail: err.message });
+  }
+};
+
+// Get unique filter options from entire database
+export const archiveFiltersHandler = async (req: Request, res: Response) => {
+  try {
+    const client = await getPool().connect();
+    
+    try {
+      // Get all unique years, employees, months
+      const [yearResult, employeeResult, monthResult] = await Promise.all([
+        client.query(`SELECT DISTINCT "Year"::text as value FROM "Archive" WHERE "Year" IS NOT NULL ORDER BY value DESC`),
+        client.query(`SELECT DISTINCT "Employee_Name" as value FROM "Archive" WHERE "Employee_Name" IS NOT NULL ORDER BY value`),
+        client.query(`SELECT DISTINCT "Month" as value FROM "Archive" WHERE "Month" IS NOT NULL ORDER BY value`)
+      ]);
+
+      res.json({
+        years: yearResult.rows.map((r: any) => r.value),
+        employees: employeeResult.rows.map((r: any) => r.value),
+        months: monthResult.rows.map((r: any) => r.value)
+      });
+    } finally {
+      client.release();
+    }
+  } catch (err: any) {
+    console.error('❌ Archive Filters API Error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch filter options', detail: err.message });
   }
 };

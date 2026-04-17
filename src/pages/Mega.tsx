@@ -3,10 +3,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Database, Search, Filter, HardDrive,
+    Database, Search, HardDrive,
     ChevronLeft, ChevronRight, FileText,
-    User, Calendar, Folder, MoreHorizontal, AlertCircle,
-    ExternalLink
+    User, Calendar, Folder, AlertCircle,
+    LayoutGrid, List as ListIcon, Filter
 } from 'lucide-react';
 import PageHeader from '@/src/components/PageHeader';
 import { useLanguage } from '@/src/context/LanguageContext';
@@ -20,54 +20,133 @@ export default function MegaArchive() {
     const [data, setData] = useState<any[]>([]);
     const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [showFilters, setShowFilters] = useState(false);
+    
+    // View mode: grid/list
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+        return typeof window !== 'undefined' ? (sessionStorage.getItem('mega_view') as 'grid' | 'list') || 'list' : 'list';
+    });
+
+    // Filter states
+    const [filters, setFilters] = useState({
+        fileName: '',
+        year: '',
+        employee: '',
+        month: ''
+    });
+
+    // Available options for filters
+    const [filterOptions, setFilterOptions] = useState({
+        years: [] as string[],
+        employees: [] as string[],
+        months: [] as string[]
+    });
+
     const itemsPerPage = 20;
 
-    // 1. Fetch Data from Postgres API
+    // Save view mode to session
+    useEffect(() => {
+        sessionStorage.setItem('mega_view', viewMode);
+    }, [viewMode]);
+
+    // Cache key for sessionStorage
+    const CACHE_KEY = 'mega_archive_data';
+    const CACHE_TIME_KEY = 'mega_archive_time';
+    const CACHE_DURATION = 1000 * 60 * 30; // 30 minutes
+
+    // 1. Fetch Data from Postgres API (with local cache)
     const fetchArchiveData = useCallback(async () => {
         try {
             setLoading(true);
-            // Yahan aap apna Postgres API endpoint call karenge
-            const response = await fetch(`/api/archive/list?page=${currentPage}&limit=${itemsPerPage}&search=${searchTerm}`);
+            
+            // Check cache first (only for page 1 without filters)
+            const isFirstPage = currentPage === 1 && !searchTerm && !filters.year && !filters.employee && !filters.month;
+            if (isFirstPage) {
+                const cached = sessionStorage.getItem(CACHE_KEY);
+                const cacheTime = sessionStorage.getItem(CACHE_TIME_KEY);
+                if (cached && cacheTime && Date.now() - Number(cacheTime) < CACHE_DURATION) {
+                    const parsed = JSON.parse(cached);
+                    setData(parsed.data || []);
+                    setTotalCount(parsed.total || 0);
+                    setLoading(false);
+                    console.log('📦 Loaded from cache');
+                    return;
+                }
+            }
+            
+            // Build query with filters
+            const params = new URLSearchParams();
+            params.set('page', String(currentPage));
+            params.set('limit', String(itemsPerPage));
+            if (searchTerm) params.set('search', searchTerm);
+            if (filters.year) params.set('year', filters.year);
+            if (filters.employee) params.set('employee', filters.employee);
+            if (filters.month) params.set('month', filters.month);
+            
+            console.log('📤 API Request:', { page: currentPage, search: searchTerm, filters });
+            const response = await fetch(`/api/archive/list?${params.toString()}`);
             
             if (!response.ok) {
-                throw new Error("API not available");
+                const errorText = await response.text();
+                throw new Error(`API Error ${response.status}: ${errorText}`);
             }
 
             const result = await response.json();
+            console.log('📥 API Response:', { page: currentPage, total: result.total, dataCount: result.data?.length });
             setData(result.data || []);
             setTotalCount(result.total || 0);
-        } catch (error) {
-            console.error("Archive Fetch Error:", error);
-            // FALLBACK: Sample Data for Demonstration (Updated to match DB schema)
-            const sampleData = [
-                { ID: 101, 'File Name': 'Historical_Records_1947.pdf', Path: 'Archives/National/Sindh', Employee_Name: 'Raja Babar', Designation: 'Digital Lead', Folder: 'History', Year: 2024, Month: 'January', Is_Master: 1, Created_At: '2024-01-15' },
-                { ID: 102, 'File Name': 'Cultural_Heritage_Survey.docx', Path: 'Archives/Heritage/V1', Employee_Name: 'Ahmed Ali', Designation: 'Assistant', Folder: 'Culture', Year: 2023, Month: 'December', Is_Master: 0, Created_At: '2023-12-10' },
-                { ID: 103, 'File Name': 'Old_Manuscript_Scan_001.jpg', Path: 'Scanning/Queue', Employee_Name: 'Sana Khan', Designation: 'Registrar', Folder: 'Manuscripts', Year: 2024, Month: 'February', Is_Master: 1, Created_At: '2024-02-20' },
-                { ID: 104, 'File Name': 'Govt_Gazette_1990.pdf', Path: 'Public/Records', Employee_Name: 'Raja Babar', Designation: 'Digital Lead', Folder: 'Legal', Year: 1990, Month: 'July', Is_Master: 0, Created_At: '1990-07-05' },
-            ];
             
-            // Filter sample data based on search term
-            const filtered = sampleData.filter(item => 
-                item['File Name'].toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.Employee_Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.Path.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.Designation?.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-
-            setData(filtered);
-            setTotalCount(filtered.length);
+            // Cache first page data
+            if (isFirstPage) {
+                sessionStorage.setItem(CACHE_KEY, JSON.stringify(result));
+                sessionStorage.setItem(CACHE_TIME_KEY, String(Date.now()));
+            }
+            
+            if (result.total === 0) {
+                console.warn('⚠️ Archive table is empty in database');
+            }
+        } catch (error: any) {
+            console.error("Archive Fetch Error:", error.message, error.stack);
+            setData([]);
+            setTotalCount(0);
         } finally {
             setLoading(false);
         }
-    }, [currentPage, searchTerm]);
+    }, [currentPage, searchTerm, filters]);
 
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
             fetchArchiveData();
-        }, 500); // Search debounce to prevent rapid API calls
+        }, 500);
 
         return () => clearTimeout(delayDebounceFn);
-    }, [fetchArchiveData]);
+    }, [fetchArchiveData, filters]);
+
+    // Load filter options from API (all unique values from database)
+    useEffect(() => {
+        const fetchFilters = async () => {
+            try {
+                const res = await fetch('/api/archive/filters');
+                if (res.ok) {
+                    const opts = await res.json();
+                    setFilterOptions({
+                        years: opts.years || [],
+                        employees: opts.employees || [],
+                        months: opts.months || []
+                    });
+                }
+            } catch (err) {
+                console.error('Failed to fetch filter options:', err);
+            }
+        };
+        fetchFilters();
+    }, []);
+
+    const clearFilters = () => {
+        setFilters({ fileName: '', year: '', employee: '', month: '' });
+        setSearchTerm('');
+        setCurrentPage(1);
+    };
 
     const totalPages = Math.ceil(totalCount / itemsPerPage);
 
@@ -91,136 +170,163 @@ export default function MegaArchive() {
                         </span>
                     </div>
 
-                    <div className="relative w-full md:w-96">
-                        <input
-                            type="text"
-                            placeholder="Search by filename, employee, or designation..."
-                            className="w-full pl-12 pr-6 py-3 bg-brand-surface/50 border border-brand-border rounded-xl outline-none focus:border-brand-accent text-brand-primary text-sm"
-                            value={searchTerm}
-                            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                        />
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-secondary" size={18} />
+                    <div className="flex flex-col md:flex-row gap-3 w-full">
+                        <div className="relative flex-1">
+                            <input
+                                type="text"
+                                placeholder="Search by File Name..."
+                                className="w-full pl-12 pr-6 py-3 bg-brand-surface/50 border border-brand-border rounded-xl outline-none focus:border-brand-accent text-brand-primary text-sm"
+                                value={searchTerm}
+                                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                            />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-secondary" size={18} />
+                        </div>
+                        <button onClick={() => setShowFilters(!showFilters)} className={cn("p-3 rounded-xl border transition-all flex items-center gap-2", showFilters ? "bg-brand-accent text-white" : "bg-brand-surface border-brand-border text-brand-primary")}>
+                            <Filter size={20} />
+                            <span className="text-xs font-bold">Filters</span>
+                        </button>
+                        <div className="flex bg-brand-bg/50 p-1 border border-brand-border rounded-xl">
+                            <button onClick={() => setViewMode('grid')} className={cn("p-2 rounded-lg", viewMode === 'grid' ? "bg-brand-accent text-white shadow-lg" : "text-brand-secondary")}>
+                                <LayoutGrid size={20} />
+                            </button>
+                            <button onClick={() => setViewMode('list')} className={cn("p-2 rounded-lg", viewMode === 'list' ? "bg-brand-accent text-white shadow-lg" : "text-brand-secondary")}>
+                                <ListIcon size={20} />
+                            </button>
+                        </div>
                     </div>
+
+                    {/* Filter Panel */}
+                    <AnimatePresence>
+                        {showFilters && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="glass p-4 rounded-xl border border-brand-border bg-brand-surface/30">
+                                <div className="flex flex-wrap gap-4 items-end">
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-[10px] text-brand-secondary uppercase">Year</label>
+                                        <select
+                                            value={filters.year}
+                                            onChange={(e) => { setFilters(f => ({ ...f, year: e.target.value })); setCurrentPage(1); }}
+                                            className="px-3 py-2 bg-brand-surface/50 border border-brand-border rounded-lg text-sm min-w-[120px]"
+                                        >
+                                            <option value="">All Years</option>
+                                            {filterOptions.years.map(y => <option key={y} value={y}>{y}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-[10px] text-brand-secondary uppercase">Employee</label>
+                                        <select
+                                            value={filters.employee}
+                                            onChange={(e) => { setFilters(f => ({ ...f, employee: e.target.value })); setCurrentPage(1); }}
+                                            className="px-3 py-2 bg-brand-surface/50 border border-brand-border rounded-lg text-sm min-w-[150px]"
+                                        >
+                                            <option value="">All Employees</option>
+                                            {filterOptions.employees.map(e => <option key={e} value={e}>{e}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-[10px] text-brand-secondary uppercase">Month</label>
+                                        <select
+                                            value={filters.month}
+                                            onChange={(e) => { setFilters(f => ({ ...f, month: e.target.value })); setCurrentPage(1); }}
+                                            className="px-3 py-2 bg-brand-surface/50 border border-brand-border rounded-lg text-sm min-w-[120px]"
+                                        >
+                                            <option value="">All Months</option>
+                                            {filterOptions.months.map(m => <option key={m} value={m}>{m}</option>)}
+                                        </select>
+                                    </div>
+                                    <button onClick={clearFilters} className="px-4 py-2 text-brand-accent text-xs font-bold hover:underline">
+                                        Clear Filters
+                                    </button>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
 
-                {/* --- DATA TABLE --- */}
+                {/* --- DATA DISPLAY (Grid/List) --- */}
                 <div className="glass overflow-hidden rounded-[2rem] border border-brand-border/50 bg-brand-surface/20 shadow-2xl backdrop-blur-xl mt-6">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse min-w-[1200px]">
-                            <thead>
-                                <tr className="bg-brand-surface/50 border-b border-brand-border text-[10px] font-bold text-brand-secondary tracking-widest uppercase">
-                                    <th className="p-6">ID</th>
-                                    <th className="p-6">File Name & Detailed Path</th>
-                                    <th className="p-6">Employee & Designation</th>
-                                    <th className="p-6">Category</th>
-                                    <th className="p-6">Status</th>
-                                    <th className="p-6">Timeline</th>
-                                    <th className="p-6 text-right">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-brand-border/20">
-                                {loading ? (
-                                    Array.from({ length: 5 }).map((_, i) => (
-                                        <tr key={i} className="animate-pulse">
-                                            <td colSpan={7} className="p-8 bg-brand-surface/5">
-                                                <div className="h-4 bg-brand-border/20 rounded w-full"></div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : data.length > 0 ? (
-                                    data.map((item) => (
-                                        <tr key={item.ID} className="hover:bg-brand-accent/5 transition-all group duration-300">
-                                            <td className="p-6 text-xs font-mono text-brand-secondary">
-                                                <span className="px-2 py-1 bg-brand-surface rounded">#{item.ID}</span>
-                                            </td>
-                                            <td className="p-6 max-w-md">
-                                                <div className="flex items-start gap-3">
-                                                    <div className="mt-1 p-2 bg-brand-accent/10 rounded-lg text-brand-accent group-hover:scale-110 transition-transform">
-                                                        <FileText size={16} />
-                                                    </div>
-                                                    <div className="flex flex-col space-y-1">
-                                                        <span className="text-sm font-bold text-brand-primary truncate block group-hover:text-brand-accent transition-colors" title={item['File Name']}>
-                                                            {item['File Name']}
-                                                        </span>
-                                                        <span className="text-[10px] text-brand-secondary/60 truncate flex items-center gap-1" title={item.Path}>
-                                                            <Folder size={10} className="text-brand-accent/50" /> {item.Path}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="p-6">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-accent/20 to-brand-primary/10 flex items-center justify-center text-[10px] border border-brand-border font-bold">
-                                                        {item.Employee_Name?.charAt(0) || 'U'}
-                                                    </div>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-xs text-brand-primary font-bold">{item.Employee_Name}</span>
-                                                        <span className="text-[9px] text-brand-secondary uppercase tracking-tighter">{item.Designation || 'Digital Registrar'}</span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="p-6">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-brand-accent"></div>
-                                                    <span className="text-[10px] text-brand-secondary font-bold uppercase tracking-widest">
-                                                        {item.Folder || 'General'}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="p-6">
-                                                <span className={cn(
-                                                    "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm border",
-                                                    item.Status === 'Completed' 
-                                                        ? "bg-green-500/20 text-green-500 border-green-500/30" 
-                                                        : item.Status === 'Pending'
-                                                        ? "bg-yellow-500/20 text-yellow-500 border-yellow-500/30"
-                                                        : "bg-brand-surface text-brand-secondary border-brand-border"
-                                                )}>
-                                                    {item.Status || 'Unknown'}
-                                                </span>
-                                            </td>
-                                            <td className="p-6">
-                                                <div className="flex items-center gap-2 text-xs text-brand-secondary">
-                                                    <Calendar size={12} className="text-brand-accent/50" />
-                                                    <div className="flex flex-col">
-                                                        <span className="font-bold text-brand-primary">{item.Year}</span>
-                                                        <span className="opacity-60 text-[10px]">{item.Month}</span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="p-6 text-right">
-                                                <button className="p-2 hover:bg-brand-accent/10 rounded-lg text-brand-secondary hover:text-brand-accent transition-colors group/btn">
-                                                    <ExternalLink size={16} className="group-hover/btn:scale-110 transition-transform" />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={7} className="p-24 text-center">
-                                            <motion.div 
-                                                initial={{ opacity: 0, scale: 0.9 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                className="flex flex-col items-center"
-                                            >
-                                                <div className="p-6 bg-brand-surface/50 rounded-full mb-6 border border-brand-border">
-                                                    <AlertCircle size={48} className="text-brand-secondary/40" />
-                                                </div>
-                                                <p className="font-bold text-brand-primary text-lg">No records found</p>
-                                                <p className="text-brand-secondary text-sm mt-1 max-w-xs">Try adjusting your search filters to find what you're looking for.</p>
-                                                <button 
-                                                    onClick={() => setSearchTerm('')}
-                                                    className="mt-6 text-brand-accent text-xs font-bold uppercase tracking-widest hover:underline"
-                                                >
-                                                    Clear all filters
-                                                </button>
-                                            </motion.div>
-                                        </td>
+                    {loading ? (
+                        <div className="p-8">
+                            <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-2"}>
+                                {Array.from({ length: 6 }).map((_, i) => (
+                                    <div key={i} className={viewMode === 'grid' ? "h-48 bg-brand-surface/40 rounded-xl animate-pulse" : "h-16 bg-brand-surface/40 rounded-lg animate-pulse"}></div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : data.length === 0 ? (
+                        <div className="p-24 text-center">
+                            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center">
+                                <div className="p-6 bg-brand-surface/50 rounded-full mb-6 border border-brand-border">
+                                    <AlertCircle size={48} className="text-brand-secondary/40" />
+                                </div>
+                                <p className="font-bold text-brand-primary text-lg">No records found</p>
+                                <p className="text-brand-secondary text-sm mt-1 max-w-xs">Try adjusting your search filters to find what you're looking for.</p>
+                                <button onClick={() => setSearchTerm('')} className="mt-6 text-brand-accent text-xs font-bold uppercase tracking-widest hover:underline">
+                                    Clear all filters
+                                </button>
+                            </motion.div>
+                        </div>
+                    ) : viewMode === 'grid' ? (
+                        /* GRID VIEW */
+                        <div className="p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {data.map((item) => (
+                                    <motion.div key={item.ID} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-brand-surface/30 border border-brand-border/50 rounded-xl p-4 hover:border-brand-accent/50 transition-all">
+                                        <div className="flex items-start gap-3 mb-3">
+                                            <div className="p-2 bg-brand-accent/10 rounded-lg text-brand-accent">
+                                                <FileText size={20} />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="text-sm font-bold text-brand-primary truncate" title={item['File Name']}>
+                                                    {item['File Name']}
+                                                </h4>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2 text-xs">
+                                            <div className="flex items-center gap-2">
+                                                <User size={12} className="text-brand-accent" />
+                                                <span className="text-brand-primary font-semibold">{item.Employee_Name || '-'}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1 text-brand-secondary pt-2 border-t border-brand-border/30 mt-2">
+                                                <Calendar size={10} />
+                                                <span>{item.Year} {item.Month}</span>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        /* LIST VIEW (Table) - Default Columns: ID, File Name, Employee, Year, Month */
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-brand-surface/50 border-b border-brand-border text-[10px] font-bold text-brand-secondary tracking-widest uppercase">
+                                        <th className="p-4">ID</th>
+                                        <th className="p-4">File Name</th>
+                                        <th className="p-4">Employee</th>
+                                        <th className="p-4">Year</th>
+                                        <th className="p-4">Month</th>
                                     </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody className="divide-y divide-brand-border/20">
+                                    {data.map((item) => (
+                                        <tr key={item.ID} className="hover:bg-brand-accent/5 transition-colors">
+                                            <td className="p-4 text-xs font-mono text-brand-secondary">#{item.ID}</td>
+                                            <td className="p-4 max-w-[250px]">
+                                                <div className="flex items-center gap-2">
+                                                    <FileText size={14} className="text-brand-accent" />
+                                                    <span className="text-sm text-brand-primary truncate" title={item['File Name']}>{item['File Name']}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 text-sm text-brand-primary">{item.Employee_Name || '-'}</td>
+                                            <td className="p-4 text-xs text-brand-primary font-bold">{item.Year || '-'}</td>
+                                            <td className="p-4 text-xs text-brand-secondary">{item.Month || '-'}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
 
                 {/* --- PAGINATION --- */}
