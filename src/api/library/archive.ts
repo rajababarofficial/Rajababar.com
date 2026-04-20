@@ -22,7 +22,13 @@ export const archiveListHandler = async (req: Request, res: Response) => {
     const limit = Math.min(Math.max(1, Number(req.query.limit) || 20), 100);
     const search = (req.query.search as string || '').trim();
     const author = (req.query.author as string || '').trim();
+    const sortBy = (req.query.sortBy as string || 'id');
+    const sortOrder = (req.query.sortOrder as string || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
     const offset = (page - 1) * limit;
+
+    // Validate sortBy to prevent SQL Injection
+    const allowedSortFields = ['id', 'file_name', 'title', 'author', 'pages'];
+    const finalSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'id';
 
     const client = await getPool().connect();
     
@@ -52,9 +58,26 @@ export const archiveListHandler = async (req: Request, res: Response) => {
       );
       const total = Number(countResult.rows[0].count);
 
+      // Improved sorting logic
+      let orderBySql = '';
+      const fallbackTitle = `LOWER(COALESCE(NULLIF(title, ''), NULLIF(file_name, '')))`;
+      
+      if (finalSortBy === 'title') {
+        orderBySql = `${fallbackTitle} ${sortOrder} NULLS LAST`;
+      } else if (finalSortBy === 'author') {
+        orderBySql = `LOWER(NULLIF(author, '')) ${sortOrder} NULLS LAST`;
+      } else if (finalSortBy === 'file_name') {
+        orderBySql = `LOWER(file_name) ${sortOrder} NULLS LAST`;
+      } else {
+        orderBySql = `${finalSortBy} ${sortOrder} NULLS LAST`;
+      }
+
       // Get paginated data
       const dataResult = await client.query(
-        `SELECT id, file_name, title, author, pages, custom_data, thumb_path, file_node, folder_node FROM public.mega ${whereClause} ORDER BY id DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+        `SELECT id, file_name, title, author, pages, custom_data, thumb_path, file_node, folder_node 
+         FROM public.mega ${whereClause} 
+         ORDER BY ${orderBySql} 
+         LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
         [...params, limit, offset]
       );
 
@@ -63,7 +86,9 @@ export const archiveListHandler = async (req: Request, res: Response) => {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit)
+        totalPages: Math.ceil(total / limit),
+        sortBy: finalSortBy,
+        sortOrder: sortOrder
       });
 
     } finally {
@@ -100,4 +125,32 @@ export const archiveFiltersHandler = async (req: Request, res: Response) => {
     console.error('❌ Mega Filters API Error:', err.message);
     res.status(500).json({ error: 'Failed to fetch filter options', detail: err.message });
   }
-};
+};
+
+// Get single record details by ID
+export const archiveDetailsHandler = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.query;
+    if (!id) return res.status(400).json({ error: 'ID is required' });
+
+    const client = await getPool().connect();
+    try {
+      const result = await client.query(
+        `SELECT id, file_name, title, author, pages, custom_data, thumb_path, file_node, folder_node 
+         FROM public.mega WHERE id = $1 LIMIT 1`,
+        [id]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Item not found' });
+      }
+
+      res.json(result.rows[0]);
+    } finally {
+      client.release();
+    }
+  } catch (err: any) {
+    console.error('❌ Mega Details API Error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch item details', detail: err.message });
+  }
+};

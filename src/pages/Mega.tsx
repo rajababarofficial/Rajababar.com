@@ -1,35 +1,65 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Database, Search, HardDrive,
     ChevronLeft, ChevronRight, FileText,
     User, Calendar, Folder, AlertCircle,
-    LayoutGrid, List as ListIcon, Filter
+    LayoutGrid, List as ListIcon, Filter,
+    MoreHorizontal, Settings2, BookOpen,
+    SortAsc, SortDesc, ArrowUpDown
 } from 'lucide-react';
 import PageHeader from '@/src/components/PageHeader';
 import { useLanguage } from '@/src/context/LanguageContext';
 import { cn } from '@/src/utils/cn';
 import SEO from '@/src/components/layout/SEO';
+import Book3D from '@/src/components/Book3D';
 
 export default function MegaArchive() {
     const { isSindhi } = useLanguage();
-    const [searchTerm, setSearchTerm] = useState('');
-    const [currentPage, setCurrentPage] = useState(1);
+    const navigate = useNavigate();
+    // --- Initial States (Memory se load karne ke liye) ---
+    const [searchTerm, setSearchTerm] = useState(() => {
+        return typeof window !== 'undefined' ? sessionStorage.getItem('mega_search') || '' : '';
+    });
+
+    const [currentPage, setCurrentPage] = useState(() => {
+        return typeof window !== 'undefined' ? Number(sessionStorage.getItem('mega_page')) || 1 : 1;
+    });
+
+    const [filters, setFilters] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = sessionStorage.getItem('mega_filters');
+            return saved ? JSON.parse(saved) : { author: '' };
+        }
+        return { author: '' };
+    });
+
     const [data, setData] = useState<any[]>([]);
     const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [showFilters, setShowFilters] = useState(false);
+    const [showColumnSettings, setShowColumnSettings] = useState(false);
+    const [showSortOptions, setShowSortOptions] = useState(false);
+    
+    // Sorting: default ID DESC
+    const [sortConfig, setSortConfig] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = sessionStorage.getItem('mega_sort');
+            return saved ? JSON.parse(saved) : { key: 'id', order: 'DESC' };
+        }
+        return { key: 'id', order: 'DESC' };
+    });
     
     // View mode: grid/list
     const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
         return typeof window !== 'undefined' ? (sessionStorage.getItem('mega_view') as 'grid' | 'list') || 'list' : 'list';
     });
 
-    // Filter states
-    const [filters, setFilters] = useState({
-        author: ''
+    const [visibleColumns, setVisibleColumns] = useState({
+        id: true, title: true, author: true, pages: true, folder: true
     });
 
     // Available options for filters
@@ -41,8 +71,12 @@ export default function MegaArchive() {
 
     // Save view mode to session
     useEffect(() => {
+        sessionStorage.setItem('mega_search', searchTerm);
+        sessionStorage.setItem('mega_page', String(currentPage));
+        sessionStorage.setItem('mega_filters', JSON.stringify(filters));
         sessionStorage.setItem('mega_view', viewMode);
-    }, [viewMode]);
+        sessionStorage.setItem('mega_sort', JSON.stringify(sortConfig));
+    }, [searchTerm, currentPage, filters, viewMode, sortConfig]);
 
     // Cache key for sessionStorage
     const CACHE_KEY = 'mega_archive_data';
@@ -54,29 +88,30 @@ export default function MegaArchive() {
         try {
             setLoading(true);
             
-            // Check cache first (only for page 1 without filters)
-            const isFirstPage = currentPage === 1 && !searchTerm && !filters.author;
-            if (isFirstPage) {
-                const cached = sessionStorage.getItem(CACHE_KEY);
-                const cacheTime = sessionStorage.getItem(CACHE_TIME_KEY);
-                if (cached && cacheTime && Date.now() - Number(cacheTime) < CACHE_DURATION) {
-                    const parsed = JSON.parse(cached);
-                    setData(parsed.data || []);
-                    setTotalCount(parsed.total || 0);
-                    setLoading(false);
-                    console.log('📦 Loaded from cache');
-                    return;
-                }
+            // Smart cache check: only use if it matches current page/search/filter/sort
+            const cacheKey = `mega_cache_${currentPage}_${searchTerm}_${filters.author}_${sortConfig.key}_${sortConfig.order}`;
+            const cached = sessionStorage.getItem(cacheKey);
+            const cacheTime = sessionStorage.getItem(`${cacheKey}_time`);
+            
+            if (cached && cacheTime && Date.now() - Number(cacheTime) < CACHE_DURATION) {
+                const parsed = JSON.parse(cached);
+                setData(parsed.data || []);
+                setTotalCount(parsed.total || 0);
+                setLoading(false);
+                console.log('📦 Loaded from smart cache:', cacheKey);
+                return;
             }
             
             // Build query with filters
             const params = new URLSearchParams();
             params.set('page', String(currentPage));
             params.set('limit', String(itemsPerPage));
+            params.set('sortBy', sortConfig.key);
+            params.set('sortOrder', sortConfig.order);
             if (searchTerm) params.set('search', searchTerm);
             if (filters.author) params.set('author', filters.author);
             
-            console.log('📤 API Request:', { page: currentPage, search: searchTerm, filters });
+            console.log('📤 API Request:', { page: currentPage, search: searchTerm, filters, sortConfig });
             const response = await fetch(`/api/archive/list?${params.toString()}`);
             
             if (!response.ok) {
@@ -89,11 +124,9 @@ export default function MegaArchive() {
             setData(result.data || []);
             setTotalCount(result.total || 0);
             
-            // Cache first page data
-            if (isFirstPage) {
-                sessionStorage.setItem(CACHE_KEY, JSON.stringify(result));
-                sessionStorage.setItem(CACHE_TIME_KEY, String(Date.now()));
-            }
+            // Cache the result with the dynamic key
+            sessionStorage.setItem(cacheKey, JSON.stringify(result));
+            sessionStorage.setItem(`${cacheKey}_time`, String(Date.now()));
             
             if (result.total === 0) {
                 console.warn('⚠️ Archive table is empty in database');
@@ -105,7 +138,7 @@ export default function MegaArchive() {
         } finally {
             setLoading(false);
         }
-    }, [currentPage, searchTerm, filters]);
+    }, [currentPage, searchTerm, filters, sortConfig]);
 
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
@@ -137,9 +170,29 @@ export default function MegaArchive() {
         setFilters({ author: '' });
         setSearchTerm('');
         setCurrentPage(1);
+        sessionStorage.removeItem('mega_search');
+        sessionStorage.removeItem('mega_filters');
+        sessionStorage.removeItem('mega_page');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const totalPages = Math.ceil(totalCount / itemsPerPage);
+
+    const getPageNumbers = () => {
+        const pages = [];
+        if (totalPages <= 5) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else {
+            pages.push(1);
+            if (currentPage > 3) pages.push('...');
+            const start = Math.max(2, currentPage - 1);
+            const end = Math.min(totalPages - 1, currentPage + 1);
+            for (let i = start; i <= end; i++) pages.push(i);
+            if (currentPage < totalPages - 2) pages.push('...');
+            pages.push(totalPages);
+        }
+        return pages;
+    };
 
     return (
         <div className="pt-24 pb-20 bg-brand-bg min-h-screen">
@@ -151,75 +204,160 @@ export default function MegaArchive() {
                 icon={<Database className="w-12 h-12 text-brand-accent" />}
             />
 
-            {/* --- STATS & SEARCH --- */}
-            <section className="max-w-7xl mx-auto px-4 mt-12 space-y-4">
-                <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            {/* --- CONTROL BAR --- */}
+            <section className="max-w-7xl mx-auto px-4 mt-12 space-y-4" dir="ltr">
+                <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2 bg-brand-accent/10 text-brand-accent px-4 py-2 rounded-full border border-brand-accent/20">
                         <HardDrive size={16} />
-                        <span className="text-sm font-bold tracking-widest uppercase">
-                            Total Records: <span className="text-brand-primary">{totalCount.toLocaleString()}</span>
+                        <span className="text-sm font-bold tracking-widest ">
+                            {searchTerm || filters.author
+                                ? `Search Result: `
+                                : `Total Records: `}
+                            <span className="text-brand-primary">{totalCount.toLocaleString()}</span>
                         </span>
                     </div>
+                </div>
 
-                    <div className="flex flex-col md:flex-row gap-3 w-full">
-                        <div className="relative flex-1">
+                <div className="glass p-6 rounded-[2.5rem] border border-brand-border/50 bg-brand-surface/20 shadow-2xl backdrop-blur-xl">
+                    <div className="flex flex-col md:flex-row gap-4 items-center">
+                        <div className="relative flex-1 w-full text-left">
                             <input
                                 type="text"
-                                placeholder="Search by File Name..."
-                                className="w-full pl-12 pr-6 py-3 bg-brand-surface/50 border border-brand-border rounded-xl outline-none focus:border-brand-accent text-brand-primary text-sm"
+                                placeholder="Search by File Name or Title..."
+                                className="w-full pl-12 pr-6 py-4 bg-brand-bg/50 border border-brand-border rounded-2xl outline-none focus:border-brand-accent text-brand-primary"
                                 value={searchTerm}
                                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                             />
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-secondary" size={18} />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-secondary" size={20} />
                         </div>
-                        <button onClick={() => setShowFilters(!showFilters)} className={cn("p-3 rounded-xl border transition-all flex items-center gap-2", showFilters ? "bg-brand-accent text-white" : "bg-brand-surface border-brand-border text-brand-primary")}>
-                            <Filter size={20} />
-                            <span className="text-xs font-bold">Filters</span>
-                        </button>
-                        <div className="flex bg-brand-bg/50 p-1 border border-brand-border rounded-xl">
-                            <button onClick={() => setViewMode('grid')} className={cn("p-2 rounded-lg", viewMode === 'grid' ? "bg-brand-accent text-white shadow-lg" : "text-brand-secondary")}>
-                                <LayoutGrid size={20} />
+
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setShowColumnSettings(!showColumnSettings)} className={cn("p-4 rounded-2xl border transition-all flex items-center gap-2", showColumnSettings ? "bg-brand-accent text-white" : "bg-brand-surface border-brand-border text-brand-primary")}>
+                                <Settings2 size={20} /> <span className="text-xs font-bold  hidden md:inline">Display</span>
                             </button>
-                            <button onClick={() => setViewMode('list')} className={cn("p-2 rounded-lg", viewMode === 'list' ? "bg-brand-accent text-white shadow-lg" : "text-brand-secondary")}>
-                                <ListIcon size={20} />
+                            <button onClick={() => setShowFilters(!showFilters)} className={cn("p-4 rounded-2xl border transition-all flex items-center gap-2", showFilters ? "bg-brand-accent text-white" : "bg-brand-surface border-brand-border text-brand-primary")}>
+                                <Filter size={20} />
+                                <span className="text-xs font-bold hidden md:inline">Filters</span>
+                            </button>
+                            <div className="flex bg-brand-bg/50 p-1 border border-brand-border rounded-2xl">
+                                <button onClick={() => setViewMode('grid')} className={cn("p-2 rounded-xl", viewMode === 'grid' ? "bg-brand-accent text-white shadow-lg" : "text-brand-secondary")}>
+                                    <LayoutGrid size={20} />
+                                </button>
+                                <button onClick={() => setViewMode('list')} className={cn("p-2 rounded-xl", viewMode === 'list' ? "bg-brand-accent text-white shadow-lg" : "text-brand-secondary")}>
+                                    <ListIcon size={20} />
+                                </button>
+                            </div>
+                            <button 
+                                onClick={() => setShowSortOptions(!showSortOptions)} 
+                                className={cn("p-4 rounded-2xl border transition-all flex items-center gap-2", showSortOptions ? "bg-brand-accent text-white" : "bg-brand-surface border-brand-border text-brand-primary")}
+                                title="Sort Options"
+                            >
+                                <ArrowUpDown size={20} />
+                                <span className="text-xs font-bold hidden md:inline">Sort</span>
                             </button>
                         </div>
                     </div>
 
-                    {/* Filter Panel */}
+                    <AnimatePresence>
+                        {showSortOptions && (
+                            <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden mt-6 pt-6 border-t border-brand-border/30">
+                                <div className="flex flex-wrap items-center gap-4">
+                                    <div className="flex bg-brand-bg/50 p-1 border border-brand-border rounded-2xl">
+                                        {[
+                                            { label: 'ID', key: 'id' },
+                                            { label: 'Title', key: 'title' },
+                                            { label: 'Author', key: 'author' },
+                                            { label: 'Pages', key: 'pages' }
+                                        ].map((opt) => (
+                                            <button 
+                                                key={opt.key}
+                                                onClick={() => { setSortConfig(prev => ({ ...prev, key: opt.key })); setCurrentPage(1); }}
+                                                className={cn(
+                                                    "px-4 py-2 rounded-xl text-[10px] font-bold transition-all",
+                                                    sortConfig.key === opt.key ? "bg-brand-accent text-white" : "text-brand-secondary hover:bg-brand-accent/10"
+                                                )}
+                                            >
+                                                {opt.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="flex bg-brand-bg/50 p-1 border border-brand-border rounded-2xl">
+                                        <button 
+                                            onClick={() => { setSortConfig(prev => ({ ...prev, order: 'ASC' })); setCurrentPage(1); }}
+                                            className={cn(
+                                                "p-2 rounded-xl flex items-center gap-2 px-4 transition-all",
+                                                sortConfig.order === 'ASC' ? "bg-brand-accent text-white shadow-lg" : "text-brand-secondary"
+                                            )}
+                                        >
+                                            <SortAsc size={16} /> <span className="text-[10px] font-bold uppercase">Asc</span>
+                                        </button>
+                                        <button 
+                                            onClick={() => { setSortConfig(prev => ({ ...prev, order: 'DESC' })); setCurrentPage(1); }}
+                                            className={cn(
+                                                "p-2 rounded-xl flex items-center gap-2 px-4 transition-all",
+                                                sortConfig.order === 'DESC' ? "bg-brand-accent text-white shadow-lg" : "text-brand-secondary"
+                                            )}
+                                        >
+                                            <SortDesc size={16} /> <span className="text-[10px] font-bold uppercase">Desc</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    <AnimatePresence>
+                        {showColumnSettings && (
+                            <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
+                                <div className="flex flex-wrap gap-2 mt-6 p-4 bg-brand-bg/40 rounded-2xl border border-brand-border/40">
+                                    {(Object.keys(visibleColumns) as Array<keyof typeof visibleColumns>).map((col) => (
+                                        <button key={col} onClick={() => setVisibleColumns(prev => ({ ...prev, [col]: !prev[col] }))} className={cn("px-4 py-2 rounded-full text-[10px] font-bold border transition-all ", visibleColumns[col] ? "bg-brand-accent/20 border-brand-accent text-brand-accent" : "bg-brand-surface border-brand-border text-brand-secondary")}>
+                                            {col.toUpperCase()}
+                                        </button>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
                     <AnimatePresence>
                         {showFilters && (
-                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="glass p-4 rounded-xl border border-brand-border bg-brand-surface/30">
-                                <div className="flex flex-wrap gap-4 items-end">
-                                    <div className="flex flex-col gap-1">
-                                        <label className="text-[10px] text-brand-secondary uppercase">Author</label>
+                            <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden mt-6 pt-6 border-t border-brand-border/30">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[10px] text-brand-secondary uppercase font-bold px-1">Filter by Author</label>
                                         <select
                                             value={filters.author}
                                             onChange={(e) => { setFilters(f => ({ ...f, author: e.target.value })); setCurrentPage(1); }}
-                                            className="px-3 py-2 bg-brand-surface/50 border border-brand-border rounded-lg text-sm min-w-[200px]"
+                                            className="w-full bg-brand-bg border border-brand-border p-3 rounded-xl text-xs text-brand-primary outline-none"
                                         >
                                             <option value="">All Authors</option>
                                             {filterOptions.authors.map(a => <option key={a} value={a}>{a}</option>)}
                                         </select>
                                     </div>
-                                    <button onClick={clearFilters} className="px-4 py-2 text-brand-accent text-xs font-bold hover:underline">
-                                        Clear Filters
+                                </div>
+                                <div className="flex justify-end mt-6 pt-4 border-t border-brand-border/20">
+                                    <button
+                                        onClick={clearFilters}
+                                        className="flex items-center gap-2 px-6 py-2 bg-brand-accent/10 hover:bg-brand-accent text-brand-accent hover:text-white border border-brand-accent/20 rounded-xl text-[10px] font-bold transition-all"
+                                    >
+                                        Clear All Filters
                                     </button>
                                 </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
                 </div>
+            </section>
 
-                {/* --- DATA DISPLAY (Grid/List) --- */}
-                <div className="glass overflow-hidden rounded-[2rem] border border-brand-border/50 bg-brand-surface/20 shadow-2xl backdrop-blur-xl mt-6">
+            {/* --- DATA DISPLAY (Grid/List) --- */}
+            <section className="max-w-7xl mx-auto px-4 mt-8">
+                <div className="min-h-[500px]">
                     {loading ? (
-                        <div className="p-8">
-                            <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-2"}>
-                                {Array.from({ length: 6 }).map((_, i) => (
-                                    <div key={i} className={viewMode === 'grid' ? "h-48 bg-brand-surface/40 rounded-xl animate-pulse" : "h-16 bg-brand-surface/40 rounded-lg animate-pulse"}></div>
-                                ))}
-                            </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 animate-pulse">
+                            {Array.from({ length: 8 }).map((_, i) => (
+                                <div key={i} className="aspect-[3/4.5] bg-brand-surface/40 rounded-[2.5rem]" />
+                            ))}
                         </div>
                     ) : data.length === 0 ? (
                         <div className="p-24 text-center">
@@ -229,103 +367,106 @@ export default function MegaArchive() {
                                 </div>
                                 <p className="font-bold text-brand-primary text-lg">No records found</p>
                                 <p className="text-brand-secondary text-sm mt-1 max-w-xs">Try adjusting your search filters to find what you're looking for.</p>
-                                <button onClick={() => setSearchTerm('')} className="mt-6 text-brand-accent text-xs font-bold uppercase tracking-widest hover:underline">
+                                <button onClick={clearFilters} className="mt-6 text-brand-accent text-xs font-bold uppercase tracking-widest hover:underline">
                                     Clear all filters
                                 </button>
                             </motion.div>
                         </div>
                     ) : viewMode === 'grid' ? (
                         /* GRID VIEW */
-                        <div className="p-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {data.map((item) => (
-                                    <motion.div key={item.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="group bg-brand-surface/30 border border-brand-border/50 rounded-2xl overflow-hidden hover:border-brand-accent/50 transition-all flex flex-col">
-                                        {/* Thumbnail Implementation */}
-                                        <div className="aspect-[4/3] bg-brand-bg relative overflow-hidden">
-                                            {item.thumb_path ? (
-                                                <img 
-                                                    src={item.thumb_path} 
-                                                    alt={item.title || item.file_name} 
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-brand-secondary/20">
-                                                    <FileText size={48} />
-                                                </div>
-                                            )}
-                                            <div className="absolute top-3 right-3 bg-brand-surface/80 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-brand-accent border border-brand-border">
-                                                {item.pages || 0} PAGES
-                                            </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+                            {data.map((item) => (
+                                <motion.div key={item.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => navigate(`/mega/${item.id}`)} className="group flex flex-col h-full relative cursor-pointer">
+                                    <div className="aspect-[3/4.5] relative flex items-center justify-center">
+                                        <Book3D
+                                            title={item.title || item.file_name}
+                                            thumbnailUrl={item.thumb_path}
+                                            className="w-full h-full z-10"
+                                        />
+                                    </div>
+
+                                    <div className="pt-6 pb-2 flex flex-col items-center text-center space-y-4">
+                                        <div className="space-y-1 w-full flex flex-col items-center px-2">
+                                            <h3 className="text-brand-primary font-black text-lg leading-snug truncate w-full" title={item.title || item.file_name}>
+                                                {item.title || item.file_name}
+                                            </h3>
+                                            <p className="text-brand-secondary text-xs sm:text-sm font-semibold tracking-wide mt-1 truncate w-full" title={item.author || 'Unknown Author'}>
+                                                <span className="opacity-60 font-medium">By: </span>
+                                                {item.author || 'Unknown Author'}
+                                            </p>
+                                            <p className="text-brand-secondary/60 text-[10px] truncate w-full px-4" title={item.file_name}>
+                                                {item.file_name}
+                                            </p>
                                         </div>
 
-                                        <div className="p-5 flex-1 flex flex-col justify-between">
-                                            <div>
-                                                <h4 className="text-base font-bold text-brand-primary line-clamp-1 mb-1" title={item.title || item.file_name}>
-                                                    {item.title || item.file_name}
-                                                </h4>
-                                                <p className="text-xs text-brand-secondary line-clamp-1 mb-4">{item.file_name}</p>
+                                        <div className="w-[90%] max-w-[300px] bg-brand-surface border border-brand-border/40 rounded-[1.2rem] py-3 px-2 flex flex-row items-center justify-evenly shadow-sm opacity-90 group-hover:opacity-100 transition-all duration-300 group-hover:-translate-y-1">
+                                            <div className="flex flex-col items-center flex-1 overflow-hidden">
+                                                <span className="text-brand-accent font-black text-sm lg:text-base">{item.pages || "0"}</span>
+                                                <span className="text-brand-secondary text-[9px] tracking-wider mt-1">{isSindhi ? "صفحا" : "Pages"}</span>
                                             </div>
-                                            
-                                            <div className="space-y-3">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-6 h-6 rounded-full bg-brand-accent/10 flex items-center justify-center">
-                                                        <User size={12} className="text-brand-accent" />
-                                                    </div>
-                                                    <span className="text-xs text-brand-primary font-medium truncate">{item.author || 'Unknown Author'}</span>
-                                                </div>
-                                                
-                                                <div className="flex items-center justify-between pt-3 border-t border-brand-border/30">
-                                                    <div className="flex items-center gap-1 text-[10px] text-brand-secondary">
-                                                        <Folder size={10} />
-                                                        <span className="truncate max-w-[100px]">{item.folder_node || 'N/A'}</span>
-                                                    </div>
-                                                    <span className="text-[10px] font-mono text-brand-secondary/50">#{item.id}</span>
-                                                </div>
+                                            <div className="w-[1px] h-6 bg-brand-border/60"></div>
+                                            <div className="flex flex-col items-center flex-1 overflow-hidden px-1">
+                                                <span className="text-brand-accent font-black text-sm lg:text-base truncate w-full text-center">
+                                                    {item.folder_node || "N/A"}
+                                                </span>
+                                                <span className="text-brand-secondary text-[9px] tracking-wider mt-1">{isSindhi ? "فولڊر" : "Folder"}</span>
                                             </div>
                                         </div>
-                                    </motion.div>
-                                ))}
-                            </div>
+                                    </div>
+                                </motion.div>
+                            ))}
                         </div>
                     ) : (
-                        /* LIST VIEW (Table) - Default Columns: ID, File Name, Employee, Year, Month */
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
+                        /* LIST VIEW (Table) */
+                        <div className="w-full overflow-x-auto rounded-[2.5rem] border border-brand-border bg-brand-surface/20">
+                            <table className="w-full text-left border-collapse min-w-[800px]">
                                 <thead>
-                                    <tr className="bg-brand-surface/50 border-b border-brand-border text-[10px] font-bold text-brand-secondary tracking-widest uppercase">
-                                        <th className="p-4">ID</th>
-                                        <th className="p-4">Title / File Name</th>
-                                        <th className="p-4">Author</th>
-                                        <th className="p-4">Pages</th>
-                                        <th className="p-4">Folder</th>
+                                    <tr className="bg-brand-surface border-b border-brand-border text-[10px] font-bold text-brand-secondary tracking-widest uppercase">
+                                        {visibleColumns.id && <th className="p-5">ID</th>}
+                                        {visibleColumns.title && <th className="p-5">File Details</th>}
+                                        {visibleColumns.author && <th className="p-5">Author</th>}
+                                        {visibleColumns.pages && <th className="p-5 text-center">Pages</th>}
+                                        {visibleColumns.folder && <th className="p-5">Folder Path</th>}
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-brand-border/20">
+                                <tbody className="divide-y divide-brand-border/30">
                                     {data.map((item) => (
-                                        <tr key={item.id} className="hover:bg-brand-accent/5 transition-colors">
-                                            <td className="p-4 text-xs font-mono text-brand-secondary">#{item.id}</td>
-                                            <td className="p-4 max-w-[350px]">
-                                                <div className="flex items-center gap-3">
-                                                    {item.thumb_path ? (
-                                                        <img src={item.thumb_path} alt="" className="w-8 h-10 object-cover rounded shadow-sm" />
-                                                    ) : (
-                                                        <div className="w-8 h-10 bg-brand-bg flex items-center justify-center rounded">
-                                                            <FileText size={14} className="text-brand-secondary" />
+                                        <tr key={item.id} onClick={() => navigate(`/mega/${item.id}`)} className="hover:bg-brand-accent/5 transition-colors group cursor-pointer">
+                                            {visibleColumns.id && <td className="p-5 text-xs font-mono text-brand-secondary">#{item.id}</td>}
+                                            {visibleColumns.title && (
+                                                <td className="p-5 max-w-[350px]">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-14 bg-brand-surface rounded overflow-hidden flex items-center justify-center shadow-sm border border-brand-border/50 relative shrink-0">
+                                                            {item.thumb_path ? (
+                                                                <img src={item.thumb_path} alt="" className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <FileText className="w-5 h-5 text-brand-secondary/40" />
+                                                            )}
                                                         </div>
-                                                    )}
-                                                    <div className="flex flex-col min-w-0">
-                                                        <span className="text-sm font-bold text-brand-primary truncate" title={item.title || item.file_name}>
-                                                            {item.title || item.file_name}
-                                                        </span>
-                                                        <span className="text-[10px] text-brand-secondary truncate">{item.file_name}</span>
+                                                        <div className="flex flex-col min-w-0">
+                                                            <span className="text-sm font-bold text-brand-primary truncate" title={item.title || item.file_name}>
+                                                                {item.title || item.file_name}
+                                                            </span>
+                                                            <span className="text-[10px] text-brand-secondary truncate">{item.file_name}</span>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td className="p-4 text-sm text-brand-primary font-medium">{item.author || '-'}</td>
-                                            <td className="p-4 text-xs text-brand-primary font-bold">
-                                                <span className="bg-brand-accent/10 px-2 py-1 rounded">{item.pages || 0}</span>
-                                            </td>
-                                            <td className="p-4 text-xs text-brand-secondary truncate max-w-[150px]">{item.folder_node || '-'}</td>
+                                                </td>
+                                            )}
+                                            {visibleColumns.author && <td className="p-5 text-sm text-brand-primary font-medium">{item.author || '-'}</td>}
+                                            {visibleColumns.pages && (
+                                                <td className="p-5 text-center">
+                                                    <span className="bg-brand-accent/10 px-3 py-1 rounded-full text-xs font-bold text-brand-accent">
+                                                        {item.pages || 0}
+                                                    </span>
+                                                </td>
+                                            )}
+                                            {visibleColumns.folder && (
+                                                <td className="p-5">
+                                                    <span className="text-xs text-brand-secondary truncate max-w-[200px] inline-block font-mono bg-brand-bg/30 px-2 py-1 rounded">
+                                                        {item.folder_node || '-'}
+                                                    </span>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                 </tbody>
@@ -334,23 +475,33 @@ export default function MegaArchive() {
                     )}
                 </div>
 
-                {/* --- PAGINATION --- */}
+                {/* --- ADVANCED PAGINATION --- */}
                 {!loading && totalPages > 1 && (
-                    <div className="flex justify-center items-center gap-2 mt-10">
+                    <div className="flex flex-wrap justify-center items-center gap-2 mt-16 pb-10" dir="ltr">
                         <button
                             disabled={currentPage === 1}
-                            onClick={() => { setCurrentPage(prev => prev - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                            className="p-2 bg-brand-surface border border-brand-border rounded-lg text-brand-secondary disabled:opacity-20 hover:border-brand-accent transition-all"
+                            onClick={() => { setCurrentPage(prev => prev - 1); window.scrollTo({ top: 400, behavior: 'smooth' }); }}
+                            className="p-3 bg-brand-surface border border-brand-border rounded-xl text-brand-secondary disabled:opacity-20 hover:border-brand-accent transition-all"
                         >
                             <ChevronLeft size={20} />
                         </button>
-                        <span className="text-xs font-bold text-brand-secondary px-4">
-                            Page <span className="text-brand-accent">{currentPage}</span> of {totalPages}
-                        </span>
+                        {getPageNumbers().map((p, idx) => (
+                            p === '...' ? (
+                                <span key={`dots-${idx}`} className="px-2 text-brand-secondary"><MoreHorizontal size={18} /></span>
+                            ) : (
+                                <button
+                                    key={`page-${p}`}
+                                    onClick={() => { setCurrentPage(p as number); window.scrollTo({ top: 400, behavior: 'smooth' }); }}
+                                    className={cn("w-12 h-12 rounded-xl font-bold text-sm border transition-all", currentPage === p ? "bg-brand-accent border-brand-accent text-white shadow-lg" : "bg-brand-surface border-brand-border text-brand-secondary hover:border-brand-accent")}
+                                >
+                                    {p}
+                                </button>
+                            )
+                        ))}
                         <button
                             disabled={currentPage === totalPages}
-                            onClick={() => { setCurrentPage(prev => prev + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                            className="p-2 bg-brand-surface border border-brand-border rounded-lg text-brand-secondary disabled:opacity-20 hover:border-brand-accent transition-all"
+                            onClick={() => { setCurrentPage(prev => prev + 1); window.scrollTo({ top: 400, behavior: 'smooth' }); }}
+                            className="p-3 bg-brand-surface border border-brand-border rounded-xl text-brand-secondary disabled:opacity-20 hover:border-brand-accent transition-all"
                         >
                             <ChevronRight size={20} />
                         </button>

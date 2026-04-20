@@ -30,6 +30,7 @@ const Mega = lazy(() => import('@/src/pages/Mega'));
 
 // Detail Pages
 const BookDetails = lazy(() => import('@/src/pages/BookDetails'));
+const MegaDetails = lazy(() => import('@/src/pages/MegaDetails'));
 
 // Tools Sub-pages
 const PdfMetadataExtractor = lazy(() => import('@/src/pages/tools/PdfMetadataExtractor'));
@@ -57,6 +58,7 @@ export default function App() {
 
                 {/* 2. Mega Archive */}
                 <Route path="/mega" element={<PageWrapper><Mega /></PageWrapper>} />
+                <Route path="/mega/:id" element={<PageWrapper><MegaDetails /></PageWrapper>} />
 
                 {/* Tools & Projects */}
                 <Route path="/projects" element={<PageWrapper><Projects /></PageWrapper>} />
