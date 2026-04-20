@@ -29,17 +29,12 @@ export default function MegaArchive() {
 
     // Filter states
     const [filters, setFilters] = useState({
-        fileName: '',
-        year: '',
-        employee: '',
-        month: ''
+        author: ''
     });
 
     // Available options for filters
     const [filterOptions, setFilterOptions] = useState({
-        years: [] as string[],
-        employees: [] as string[],
-        months: [] as string[]
+        authors: [] as string[]
     });
 
     const itemsPerPage = 20;
@@ -60,7 +55,7 @@ export default function MegaArchive() {
             setLoading(true);
             
             // Check cache first (only for page 1 without filters)
-            const isFirstPage = currentPage === 1 && !searchTerm && !filters.year && !filters.employee && !filters.month;
+            const isFirstPage = currentPage === 1 && !searchTerm && !filters.author;
             if (isFirstPage) {
                 const cached = sessionStorage.getItem(CACHE_KEY);
                 const cacheTime = sessionStorage.getItem(CACHE_TIME_KEY);
@@ -79,9 +74,7 @@ export default function MegaArchive() {
             params.set('page', String(currentPage));
             params.set('limit', String(itemsPerPage));
             if (searchTerm) params.set('search', searchTerm);
-            if (filters.year) params.set('year', filters.year);
-            if (filters.employee) params.set('employee', filters.employee);
-            if (filters.month) params.set('month', filters.month);
+            if (filters.author) params.set('author', filters.author);
             
             console.log('📤 API Request:', { page: currentPage, search: searchTerm, filters });
             const response = await fetch(`/api/archive/list?${params.toString()}`);
@@ -130,9 +123,7 @@ export default function MegaArchive() {
                 if (res.ok) {
                     const opts = await res.json();
                     setFilterOptions({
-                        years: opts.years || [],
-                        employees: opts.employees || [],
-                        months: opts.months || []
+                        authors: opts.authors || []
                     });
                 }
             } catch (err) {
@@ -143,7 +134,7 @@ export default function MegaArchive() {
     }, []);
 
     const clearFilters = () => {
-        setFilters({ fileName: '', year: '', employee: '', month: '' });
+        setFilters({ author: '' });
         setSearchTerm('');
         setCurrentPage(1);
     };
@@ -201,36 +192,14 @@ export default function MegaArchive() {
                             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="glass p-4 rounded-xl border border-brand-border bg-brand-surface/30">
                                 <div className="flex flex-wrap gap-4 items-end">
                                     <div className="flex flex-col gap-1">
-                                        <label className="text-[10px] text-brand-secondary uppercase">Year</label>
+                                        <label className="text-[10px] text-brand-secondary uppercase">Author</label>
                                         <select
-                                            value={filters.year}
-                                            onChange={(e) => { setFilters(f => ({ ...f, year: e.target.value })); setCurrentPage(1); }}
-                                            className="px-3 py-2 bg-brand-surface/50 border border-brand-border rounded-lg text-sm min-w-[120px]"
+                                            value={filters.author}
+                                            onChange={(e) => { setFilters(f => ({ ...f, author: e.target.value })); setCurrentPage(1); }}
+                                            className="px-3 py-2 bg-brand-surface/50 border border-brand-border rounded-lg text-sm min-w-[200px]"
                                         >
-                                            <option value="">All Years</option>
-                                            {filterOptions.years.map(y => <option key={y} value={y}>{y}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="flex flex-col gap-1">
-                                        <label className="text-[10px] text-brand-secondary uppercase">Employee</label>
-                                        <select
-                                            value={filters.employee}
-                                            onChange={(e) => { setFilters(f => ({ ...f, employee: e.target.value })); setCurrentPage(1); }}
-                                            className="px-3 py-2 bg-brand-surface/50 border border-brand-border rounded-lg text-sm min-w-[150px]"
-                                        >
-                                            <option value="">All Employees</option>
-                                            {filterOptions.employees.map(e => <option key={e} value={e}>{e}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="flex flex-col gap-1">
-                                        <label className="text-[10px] text-brand-secondary uppercase">Month</label>
-                                        <select
-                                            value={filters.month}
-                                            onChange={(e) => { setFilters(f => ({ ...f, month: e.target.value })); setCurrentPage(1); }}
-                                            className="px-3 py-2 bg-brand-surface/50 border border-brand-border rounded-lg text-sm min-w-[120px]"
-                                        >
-                                            <option value="">All Months</option>
-                                            {filterOptions.months.map(m => <option key={m} value={m}>{m}</option>)}
+                                            <option value="">All Authors</option>
+                                            {filterOptions.authors.map(a => <option key={a} value={a}>{a}</option>)}
                                         </select>
                                     </div>
                                     <button onClick={clearFilters} className="px-4 py-2 text-brand-accent text-xs font-bold hover:underline">
@@ -268,27 +237,50 @@ export default function MegaArchive() {
                     ) : viewMode === 'grid' ? (
                         /* GRID VIEW */
                         <div className="p-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {data.map((item) => (
-                                    <motion.div key={item.ID} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-brand-surface/30 border border-brand-border/50 rounded-xl p-4 hover:border-brand-accent/50 transition-all">
-                                        <div className="flex items-start gap-3 mb-3">
-                                            <div className="p-2 bg-brand-accent/10 rounded-lg text-brand-accent">
-                                                <FileText size={20} />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <h4 className="text-sm font-bold text-brand-primary truncate" title={item['File Name']}>
-                                                    {item['File Name']}
-                                                </h4>
+                                    <motion.div key={item.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="group bg-brand-surface/30 border border-brand-border/50 rounded-2xl overflow-hidden hover:border-brand-accent/50 transition-all flex flex-col">
+                                        {/* Thumbnail Implementation */}
+                                        <div className="aspect-[4/3] bg-brand-bg relative overflow-hidden">
+                                            {item.thumb_path ? (
+                                                <img 
+                                                    src={item.thumb_path} 
+                                                    alt={item.title || item.file_name} 
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-brand-secondary/20">
+                                                    <FileText size={48} />
+                                                </div>
+                                            )}
+                                            <div className="absolute top-3 right-3 bg-brand-surface/80 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-brand-accent border border-brand-border">
+                                                {item.pages || 0} PAGES
                                             </div>
                                         </div>
-                                        <div className="space-y-2 text-xs">
-                                            <div className="flex items-center gap-2">
-                                                <User size={12} className="text-brand-accent" />
-                                                <span className="text-brand-primary font-semibold">{item.Employee_Name || '-'}</span>
+
+                                        <div className="p-5 flex-1 flex flex-col justify-between">
+                                            <div>
+                                                <h4 className="text-base font-bold text-brand-primary line-clamp-1 mb-1" title={item.title || item.file_name}>
+                                                    {item.title || item.file_name}
+                                                </h4>
+                                                <p className="text-xs text-brand-secondary line-clamp-1 mb-4">{item.file_name}</p>
                                             </div>
-                                            <div className="flex items-center gap-1 text-brand-secondary pt-2 border-t border-brand-border/30 mt-2">
-                                                <Calendar size={10} />
-                                                <span>{item.Year} {item.Month}</span>
+                                            
+                                            <div className="space-y-3">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-6 h-6 rounded-full bg-brand-accent/10 flex items-center justify-center">
+                                                        <User size={12} className="text-brand-accent" />
+                                                    </div>
+                                                    <span className="text-xs text-brand-primary font-medium truncate">{item.author || 'Unknown Author'}</span>
+                                                </div>
+                                                
+                                                <div className="flex items-center justify-between pt-3 border-t border-brand-border/30">
+                                                    <div className="flex items-center gap-1 text-[10px] text-brand-secondary">
+                                                        <Folder size={10} />
+                                                        <span className="truncate max-w-[100px]">{item.folder_node || 'N/A'}</span>
+                                                    </div>
+                                                    <span className="text-[10px] font-mono text-brand-secondary/50">#{item.id}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </motion.div>
@@ -302,25 +294,38 @@ export default function MegaArchive() {
                                 <thead>
                                     <tr className="bg-brand-surface/50 border-b border-brand-border text-[10px] font-bold text-brand-secondary tracking-widest uppercase">
                                         <th className="p-4">ID</th>
-                                        <th className="p-4">File Name</th>
-                                        <th className="p-4">Employee</th>
-                                        <th className="p-4">Year</th>
-                                        <th className="p-4">Month</th>
+                                        <th className="p-4">Title / File Name</th>
+                                        <th className="p-4">Author</th>
+                                        <th className="p-4">Pages</th>
+                                        <th className="p-4">Folder</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-brand-border/20">
                                     {data.map((item) => (
-                                        <tr key={item.ID} className="hover:bg-brand-accent/5 transition-colors">
-                                            <td className="p-4 text-xs font-mono text-brand-secondary">#{item.ID}</td>
-                                            <td className="p-4 max-w-[250px]">
-                                                <div className="flex items-center gap-2">
-                                                    <FileText size={14} className="text-brand-accent" />
-                                                    <span className="text-sm text-brand-primary truncate" title={item['File Name']}>{item['File Name']}</span>
+                                        <tr key={item.id} className="hover:bg-brand-accent/5 transition-colors">
+                                            <td className="p-4 text-xs font-mono text-brand-secondary">#{item.id}</td>
+                                            <td className="p-4 max-w-[350px]">
+                                                <div className="flex items-center gap-3">
+                                                    {item.thumb_path ? (
+                                                        <img src={item.thumb_path} alt="" className="w-8 h-10 object-cover rounded shadow-sm" />
+                                                    ) : (
+                                                        <div className="w-8 h-10 bg-brand-bg flex items-center justify-center rounded">
+                                                            <FileText size={14} className="text-brand-secondary" />
+                                                        </div>
+                                                    )}
+                                                    <div className="flex flex-col min-w-0">
+                                                        <span className="text-sm font-bold text-brand-primary truncate" title={item.title || item.file_name}>
+                                                            {item.title || item.file_name}
+                                                        </span>
+                                                        <span className="text-[10px] text-brand-secondary truncate">{item.file_name}</span>
+                                                    </div>
                                                 </div>
                                             </td>
-                                            <td className="p-4 text-sm text-brand-primary">{item.Employee_Name || '-'}</td>
-                                            <td className="p-4 text-xs text-brand-primary font-bold">{item.Year || '-'}</td>
-                                            <td className="p-4 text-xs text-brand-secondary">{item.Month || '-'}</td>
+                                            <td className="p-4 text-sm text-brand-primary font-medium">{item.author || '-'}</td>
+                                            <td className="p-4 text-xs text-brand-primary font-bold">
+                                                <span className="bg-brand-accent/10 px-2 py-1 rounded">{item.pages || 0}</span>
+                                            </td>
+                                            <td className="p-4 text-xs text-brand-secondary truncate max-w-[150px]">{item.folder_node || '-'}</td>
                                         </tr>
                                     ))}
                                 </tbody>
