@@ -9,7 +9,8 @@ import {
     User, Calendar, Folder, AlertCircle,
     LayoutGrid, List as ListIcon, Filter,
     MoreHorizontal, Settings2, BookOpen,
-    SortAsc, SortDesc, ArrowUpDown
+    SortAsc, SortDesc, ArrowUpDown,
+    ExternalLink, FolderOpen
 } from 'lucide-react';
 import PageHeader from '@/src/components/PageHeader';
 import { useLanguage } from '@/src/context/LanguageContext';
@@ -31,8 +32,13 @@ export default function MegaArchive() {
 
     const [filters, setFilters] = useState(() => {
         if (typeof window !== 'undefined') {
-            const saved = sessionStorage.getItem('mega_filters');
-            return saved ? JSON.parse(saved) : { author: '' };
+            try {
+                const saved = sessionStorage.getItem('mega_filters');
+                return saved ? JSON.parse(saved) : { author: '' };
+            } catch (error) {
+                console.error("Session parsing error (filters):", error);
+                return { author: '' };
+            }
         }
         return { author: '' };
     });
@@ -47,8 +53,13 @@ export default function MegaArchive() {
     // Sorting: default ID DESC
     const [sortConfig, setSortConfig] = useState(() => {
         if (typeof window !== 'undefined') {
-            const saved = sessionStorage.getItem('mega_sort');
-            return saved ? JSON.parse(saved) : { key: 'id', order: 'DESC' };
+            try {
+                const saved = sessionStorage.getItem('mega_sort');
+                return saved ? JSON.parse(saved) : { key: 'id', order: 'DESC' };
+            } catch (error) {
+                console.error("Session parsing error (sort):", error);
+                return { key: 'id', order: 'DESC' };
+            }
         }
         return { key: 'id', order: 'DESC' };
     });
@@ -94,12 +105,17 @@ export default function MegaArchive() {
             const cacheTime = sessionStorage.getItem(`${cacheKey}_time`);
             
             if (cached && cacheTime && Date.now() - Number(cacheTime) < CACHE_DURATION) {
-                const parsed = JSON.parse(cached);
-                setData(parsed.data || []);
-                setTotalCount(parsed.total || 0);
-                setLoading(false);
-                console.log('📦 Loaded from smart cache:', cacheKey);
-                return;
+                try {
+                    const parsed = JSON.parse(cached);
+                    setData(parsed.data || []);
+                    setTotalCount(parsed.total || 0);
+                    setLoading(false);
+                    console.log('📦 Loaded from smart cache:', cacheKey);
+                    return;
+                } catch (e) {
+                    console.error("Cache parsing error:", e);
+                    sessionStorage.removeItem(cacheKey);
+                }
             }
             
             // Build query with filters
@@ -405,12 +421,19 @@ export default function MegaArchive() {
                                                 <span className="text-brand-secondary text-[9px] tracking-wider mt-1">{isSindhi ? "صفحا" : "Pages"}</span>
                                             </div>
                                             <div className="w-[1px] h-6 bg-brand-border/60"></div>
-                                            <div className="flex flex-col items-center flex-1 overflow-hidden px-1">
-                                                <span className="text-brand-accent font-black text-sm lg:text-base truncate w-full text-center">
-                                                    {item.folder_node || "N/A"}
+                                            <a 
+                                                href={item.folder_node ? `https://mega.nz/fm/${item.folder_node}` : "#"} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer" 
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="flex flex-col items-center flex-1 overflow-hidden px-1 hover:bg-brand-accent/5 rounded-lg transition-all border border-transparent hover:border-brand-accent/20"
+                                            >
+                                                <span className="text-brand-accent font-black text-sm lg:text-base truncate w-full text-center flex items-center justify-center gap-1">
+                                                    {isSindhi ? "فولڊر" : "Folder"}
+                                                    <ExternalLink size={10} className="hidden group-hover:inline-block transition-opacity" />
                                                 </span>
-                                                <span className="text-brand-secondary text-[9px] tracking-wider mt-1">{isSindhi ? "فولڊر" : "Folder"}</span>
-                                            </div>
+                                                <span className="text-brand-secondary text-[9px] tracking-wider mt-1 uppercase font-bold">{isSindhi ? "کوليو" : "Open"}</span>
+                                            </a>
                                         </div>
                                     </div>
                                 </motion.div>
@@ -462,9 +485,22 @@ export default function MegaArchive() {
                                             )}
                                             {visibleColumns.folder && (
                                                 <td className="p-5">
-                                                    <span className="text-xs text-brand-secondary truncate max-w-[200px] inline-block font-mono bg-brand-bg/30 px-2 py-1 rounded">
-                                                        {item.folder_node || '-'}
-                                                    </span>
+                                                    <a 
+                                                       href={item.folder_node ? `https://mega.nz/fm/${item.folder_node}` : "#"} 
+                                                       target="_blank" 
+                                                       rel="noopener noreferrer"
+                                                       onClick={(e) => e.stopPropagation()}
+                                                       className={cn(
+                                                           "text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg border flex items-center gap-2 max-w-fit transition-all",
+                                                           item.folder_node 
+                                                               ? "border-brand-accent/20 bg-brand-accent/5 text-brand-accent hover:bg-brand-accent hover:text-white" 
+                                                               : "border-brand-border/40 bg-brand-bg/30 text-brand-secondary/40 pointer-events-none"
+                                                       )}
+                                                    >
+                                                       <FolderOpen size={12} />
+                                                       {isSindhi ? "فولڊر کوليو" : "Open Folder"}
+                                                       <ExternalLink size={10} />
+                                                    </a>
                                                 </td>
                                             )}
                                         </tr>

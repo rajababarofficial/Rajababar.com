@@ -13,7 +13,8 @@ import {
   Info,
   FileText,
   Clock,
-  HardDrive
+  HardDrive,
+  ExternalLink
 } from "lucide-react";
 import { useLanguage } from "@/src/context/LanguageContext";
 import { cn } from "@/src/utils/cn";
@@ -132,18 +133,40 @@ export default function MegaDetails() {
                 </p>
                 <p className="text-sm font-bold text-brand-primary truncate">{item.pages || "---"}</p>
               </div>
-              <div className="space-y-2 text-left">
-                <p className="text-[10px] text-brand-secondary uppercase font-bold tracking-widest flex items-center gap-2">
-                  <FolderOpen size={14} className="text-brand-accent" /> Folder Node
+              <a 
+                href={item.folder_node ? `https://mega.nz/fm/${item.folder_node}` : "#"} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className={cn(
+                  "space-y-2 text-left block group transition-all",
+                  !item.folder_node && "pointer-events-none opacity-50"
+                )}
+              >
+                <p className="text-[10px] text-brand-secondary uppercase font-bold tracking-widest flex items-center gap-2 group-hover:text-brand-accent">
+                  <FolderOpen size={14} className="text-brand-accent" /> {isSindhi ? "فولڊر لنڪ" : "Folder Link"}
                 </p>
-                <p className="text-sm font-bold text-brand-primary truncate" title={item.folder_node}>{item.folder_node || "---"}</p>
-              </div>
-              <div className="space-y-2 text-left">
-                <p className="text-[10px] text-brand-secondary uppercase font-bold tracking-widest flex items-center gap-2">
-                  <HardDrive size={14} className="text-brand-accent" /> File Node
+                <p className="text-sm font-bold text-brand-primary truncate flex items-center gap-2">
+                   {isSindhi ? "فولڊر کوليو" : "Open Folder"}
+                   <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
                 </p>
-                <p className="text-sm font-bold text-brand-primary truncate" title={item.file_node}>{item.file_node || "---"}</p>
-              </div>
+              </a>
+              <a 
+                href={item.file_node ? `https://mega.nz/fm/${item.file_node}` : "#"} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className={cn(
+                  "space-y-2 text-left block group transition-all",
+                  !item.file_node && "pointer-events-none opacity-50"
+                )}
+              >
+                <p className="text-[10px] text-brand-secondary uppercase font-bold tracking-widest flex items-center gap-2 group-hover:text-brand-accent">
+                  <HardDrive size={14} className="text-brand-accent" /> {isSindhi ? "فائيل لنڪ" : "File Link"}
+                </p>
+                <p className="text-sm font-bold text-brand-primary truncate flex items-center gap-2">
+                   {isSindhi ? "فائيل کوليو" : "Open File"}
+                   <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                </p>
+              </a>
             </div>
 
             <div className="p-6 bg-brand-bg rounded-2xl border border-brand-border/50">
