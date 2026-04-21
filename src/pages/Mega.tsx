@@ -148,8 +148,12 @@ export default function MegaArchive() {
             if (!response.ok) throw new Error(`API Error ${response.status}`);
 
             const result = await response.json();
-            setData(result.data || []);
-            setTotalCount(result.total || 0);
+            console.log('Archive Data Received:', result);
+            
+            // Handle both { data: [...] } and directly [...]
+            const items = result.data || (Array.isArray(result) ? result : []);
+            setData(items);
+            setTotalCount(result.total || items.length || 0);
 
             sessionStorage.setItem(cacheKey, JSON.stringify(result));
             sessionStorage.setItem(`${cacheKey}_time`, String(Date.now()));
@@ -175,13 +179,14 @@ export default function MegaArchive() {
                 const res = await fetch('/api/archive/filters');
                 if (res.ok) {
                     const opts = await res.json();
-                    console.log('Fetched filter options:', opts);
+                    console.log('Filters Received:', opts);
+                    const finalOpts = opts.data || opts;
                     setFilterOptions({
-                        publishers: opts.publishers || [],
-                        scannedBy: opts.scannedBy || [],
-                        languages: opts.languages || [],
-                        years: opts.years || [],
-                        customKeys: opts.customKeys || [],
+                        publishers: finalOpts.publishers || [],
+                        scannedBy: finalOpts.scannedBy || [],
+                        languages: finalOpts.languages || [],
+                        years: finalOpts.years || [],
+                        customKeys: finalOpts.customKeys || [],
                     });
                 }
             } catch (err) {

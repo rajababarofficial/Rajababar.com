@@ -114,55 +114,51 @@ export const archiveListHandler = async (req: Request, res: Response) => {
 
 export const archiveFiltersHandler = async (req: Request, res: Response) => {
   try {
-    const client = await getPool().connect();
+    const pool = getPool();
 
-    try {
-      const [publisherResult, scannedByResult, languageResult, yearResult, keysResult] = await Promise.all([
-        client.query(
-          `SELECT DISTINCT custom_data->>'PublishedBy' as value
-           FROM public.mega
-           WHERE custom_data->>'PublishedBy' IS NOT NULL AND custom_data->>'PublishedBy' != ''
-           ORDER BY value`
-        ),
-        client.query(
-          `SELECT DISTINCT custom_data->>'ScannedBy' as value
-           FROM public.mega
-           WHERE custom_data->>'ScannedBy' IS NOT NULL AND custom_data->>'ScannedBy' != ''
-           ORDER BY value`
-        ),
-        client.query(
-          `SELECT DISTINCT custom_data->>'Language' as value
-           FROM public.mega
-           WHERE custom_data->>'Language' IS NOT NULL
-             AND custom_data->>'Language' != ''
-           ORDER BY value`
-        ),
-        client.query(
-          `SELECT DISTINCT custom_data->>'DateOfPublication' as value
-           FROM public.mega
-           WHERE custom_data->>'DateOfPublication' IS NOT NULL
-             AND custom_data->>'DateOfPublication' != ''
-             AND custom_data->>'DateOfPublication' != 'Unknown'
-           ORDER BY value DESC`
-        ),
-        client.query(
-          `SELECT DISTINCT jsonb_object_keys(custom_data) as key
-           FROM public.mega
-           ORDER BY key`
-        ),
-      ]);
+    const [publisherResult, scannedByResult, languageResult, yearResult, keysResult] = await Promise.all([
+      pool.query(
+        `SELECT DISTINCT custom_data->>'PublishedBy' as value
+         FROM public.mega
+         WHERE custom_data->>'PublishedBy' IS NOT NULL AND custom_data->>'PublishedBy' != ''
+         ORDER BY value`
+      ),
+      pool.query(
+        `SELECT DISTINCT custom_data->>'ScannedBy' as value
+         FROM public.mega
+         WHERE custom_data->>'ScannedBy' IS NOT NULL AND custom_data->>'ScannedBy' != ''
+         ORDER BY value`
+      ),
+      pool.query(
+        `SELECT DISTINCT custom_data->>'Language' as value
+         FROM public.mega
+         WHERE custom_data->>'Language' IS NOT NULL
+           AND custom_data->>'Language' != ''
+         ORDER BY value`
+      ),
+      pool.query(
+        `SELECT DISTINCT custom_data->>'DateOfPublication' as value
+         FROM public.mega
+         WHERE custom_data->>'DateOfPublication' IS NOT NULL
+           AND custom_data->>'DateOfPublication' != ''
+           AND custom_data->>'DateOfPublication' != 'Unknown'
+         ORDER BY value DESC`
+      ),
+      pool.query(
+        `SELECT DISTINCT jsonb_object_keys(custom_data) as key
+         FROM public.mega
+         WHERE custom_data IS NOT NULL AND jsonb_typeof(custom_data) = 'object'
+         ORDER BY key`
+      ),
+    ]);
 
-      res.json({
-        publishers: publisherResult.rows.map((r: any) => r.value),
-        scannedBy: scannedByResult.rows.map((r: any) => r.value),
-        languages: languageResult.rows.map((r: any) => r.value),
-        years: yearResult.rows.map((r: any) => r.value),
-        customKeys: keysResult.rows.map((r: any) => r.key),
-      });
-
-    } finally {
-      client.release();
-    }
+    res.json({
+      publishers: publisherResult.rows.map((r: any) => r.value),
+      scannedBy: scannedByResult.rows.map((r: any) => r.value),
+      languages: languageResult.rows.map((r: any) => r.value),
+      years: yearResult.rows.map((r: any) => r.value),
+      customKeys: keysResult.rows.map((r: any) => r.key),
+    });
 
   } catch (err: any) {
     console.error('❌ Mega Filters API Error:', err.message);
