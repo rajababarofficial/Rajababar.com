@@ -4,7 +4,7 @@ import cors from 'cors';
 import { syncHandler } from './library/sync';
 import { initDbHandler, semanticSearchHandler } from './library/init-db';
 import { infoHandler } from './library/info';
-import { archiveListHandler, archiveFiltersHandler, archiveDetailsHandler } from './library/archive';
+import { archiveListHandler, archiveFiltersHandler, archiveDetailsHandler, archiveCustomFieldValuesHandler } from './library/archive';
 
 dotenv.config();
 
@@ -24,6 +24,7 @@ app.get('/api/library/info', infoHandler);
 app.get('/api/archive/list', archiveListHandler);
 app.get('/api/archive/filters', archiveFiltersHandler);
 app.get('/api/archive/details', archiveDetailsHandler);
+app.get('/api/archive/custom-values', archiveCustomFieldValuesHandler);
 
 // Health check
 app.get('/health', (req, res) => {

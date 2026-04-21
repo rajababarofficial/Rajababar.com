@@ -1,15 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Database, Search, HardDrive,
     ChevronLeft, ChevronRight, FileText,
-    User, Calendar, Folder, AlertCircle,
-    LayoutGrid, List as ListIcon, Filter,
-    MoreHorizontal, Settings2, BookOpen,
-    SortAsc, SortDesc, ArrowUpDown,
+    AlertCircle, LayoutGrid, List as ListIcon, Filter,
+    MoreHorizontal, Settings2, SortAsc, SortDesc, ArrowUpDown,
     ExternalLink, FolderOpen
 } from 'lucide-react';
 import PageHeader from '@/src/components/PageHeader';
@@ -18,69 +16,92 @@ import { cn } from '@/src/utils/cn';
 import SEO from '@/src/components/layout/SEO';
 import Book3D from '@/src/components/Book3D';
 
+interface BookMeta {
+    Language?: string;
+    DateOfPublication?: string;
+    PublishedBy?: string;
+    ScannedBy?: string;
+    DigitizedBy?: string;
+    Keywords?: string;
+    Website?: string;
+    SindhologyCN?: string;
+    Note?: string;
+}
+
+interface ArchiveItem {
+    id: number;
+    file_name: string;
+    title: string;
+    author: string;
+    pages: number;
+    custom_data: BookMeta;
+    thumb_path: string;
+    file_node: string;
+    folder_node: string;
+}
+
 export default function MegaArchive() {
     const { isSindhi } = useLanguage();
     const navigate = useNavigate();
-    // --- Initial States (Memory se load karne ke liye) ---
-    const [searchTerm, setSearchTerm] = useState(() => {
-        return typeof window !== 'undefined' ? sessionStorage.getItem('mega_search') || '' : '';
-    });
 
-    const [currentPage, setCurrentPage] = useState(() => {
-        return typeof window !== 'undefined' ? Number(sessionStorage.getItem('mega_page')) || 1 : 1;
-    });
-
-    const [filters, setFilters] = useState(() => {
+    const [searchTerm, setSearchTerm] = useState(() =>
+        typeof window !== 'undefined' ? sessionStorage.getItem('mega_search') || '' : ''
+    );
+    const [currentPage, setCurrentPage] = useState(() =>
+        typeof window !== 'undefined' ? Number(sessionStorage.getItem('mega_page')) || 1 : 1
+    );
+    const [filters, setFilters] = useState<{ publisher: string; scannedBy: string; language: string; year: string; customKey: string; customValue: string }>(() => {
         if (typeof window !== 'undefined') {
             try {
                 const saved = sessionStorage.getItem('mega_filters');
-                return saved ? JSON.parse(saved) : { author: '' };
-            } catch (error) {
-                console.error("Session parsing error (filters):", error);
-                return { author: '' };
-            }
+                return saved ? JSON.parse(saved) : { publisher: '', scannedBy: '', language: '', year: '', customKey: '', customValue: '' };
+            } catch { return { publisher: '', scannedBy: '', language: '', year: '', customKey: '', customValue: '' }; }
         }
-        return { author: '' };
+        return { publisher: '', scannedBy: '', language: '', year: '', customKey: '', customValue: '' };
     });
 
-    const [data, setData] = useState<any[]>([]);
+    const [data, setData] = useState<ArchiveItem[]>([]);
     const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [showFilters, setShowFilters] = useState(false);
     const [showColumnSettings, setShowColumnSettings] = useState(false);
     const [showSortOptions, setShowSortOptions] = useState(false);
-    
-    // Sorting: default ID DESC
-    const [sortConfig, setSortConfig] = useState(() => {
+
+    const [sortConfig, setSortConfig] = useState<{ key: string; order: string }>(() => {
         if (typeof window !== 'undefined') {
             try {
                 const saved = sessionStorage.getItem('mega_sort');
                 return saved ? JSON.parse(saved) : { key: 'id', order: 'DESC' };
-            } catch (error) {
-                console.error("Session parsing error (sort):", error);
-                return { key: 'id', order: 'DESC' };
-            }
+            } catch { return { key: 'id', order: 'DESC' }; }
         }
         return { key: 'id', order: 'DESC' };
     });
-    
-    // View mode: grid/list
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
-        return typeof window !== 'undefined' ? (sessionStorage.getItem('mega_view') as 'grid' | 'list') || 'list' : 'list';
-    });
+
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>(() =>
+        typeof window !== 'undefined'
+            ? (sessionStorage.getItem('mega_view') as 'grid' | 'list') || 'list'
+            : 'list'
+    );
 
     const [visibleColumns, setVisibleColumns] = useState({
-        id: true, title: true, author: true, pages: true, folder: true
+        id: true, title: true, author: true, pages: true, language: true, year: true, scannedBy: true, folder: true
     });
 
-    // Available options for filters
     const [filterOptions, setFilterOptions] = useState({
-        authors: [] as string[]
+        publishers: [] as string[],
+        scannedBy: [] as string[],
+        languages: [] as string[],
+        years: [] as string[],
+        customKeys: [] as string[],
     });
+
+    const [customFieldValues, setCustomFieldValues] = useState<string[]>([]);
+    const [isFetchingValues, setIsFetchingValues] = useState(false);
 
     const itemsPerPage = 20;
+    const CACHE_DURATION = 1000 * 60 * 30;
 
-    // Save view mode to session
+    // Session persistence
     useEffect(() => {
         sessionStorage.setItem('mega_search', searchTerm);
         sessionStorage.setItem('mega_page', String(currentPage));
@@ -89,66 +110,52 @@ export default function MegaArchive() {
         sessionStorage.setItem('mega_sort', JSON.stringify(sortConfig));
     }, [searchTerm, currentPage, filters, viewMode, sortConfig]);
 
-    // Cache key for sessionStorage
-    const CACHE_KEY = 'mega_archive_data';
-    const CACHE_TIME_KEY = 'mega_archive_time';
-    const CACHE_DURATION = 1000 * 60 * 30; // 30 minutes
-
-    // 1. Fetch Data from Postgres API (with local cache)
+    // Fetch paginated data
     const fetchArchiveData = useCallback(async () => {
         try {
             setLoading(true);
-            
-            // Smart cache check: only use if it matches current page/search/filter/sort
-            const cacheKey = `mega_cache_${currentPage}_${searchTerm}_${filters.author}_${sortConfig.key}_${sortConfig.order}`;
+
+            const cacheKey = `mega_cache_${currentPage}_${searchTerm}_${filters.publisher}_${filters.scannedBy}_${filters.language}_${filters.year}_${filters.customKey}_${filters.customValue}_${sortConfig.key}_${sortConfig.order}`;
             const cached = sessionStorage.getItem(cacheKey);
             const cacheTime = sessionStorage.getItem(`${cacheKey}_time`);
-            
+
             if (cached && cacheTime && Date.now() - Number(cacheTime) < CACHE_DURATION) {
                 try {
                     const parsed = JSON.parse(cached);
                     setData(parsed.data || []);
                     setTotalCount(parsed.total || 0);
                     setLoading(false);
-                    console.log('📦 Loaded from smart cache:', cacheKey);
                     return;
-                } catch (e) {
-                    console.error("Cache parsing error:", e);
-                    sessionStorage.removeItem(cacheKey);
-                }
+                } catch { sessionStorage.removeItem(cacheKey); }
             }
-            
-            // Build query with filters
+
             const params = new URLSearchParams();
             params.set('page', String(currentPage));
             params.set('limit', String(itemsPerPage));
             params.set('sortBy', sortConfig.key);
             params.set('sortOrder', sortConfig.order);
             if (searchTerm) params.set('search', searchTerm);
-            if (filters.author) params.set('author', filters.author);
-            
-            console.log('📤 API Request:', { page: currentPage, search: searchTerm, filters, sortConfig });
-            const response = await fetch(`/api/archive/list?${params.toString()}`);
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`API Error ${response.status}: ${errorText}`);
+            if (filters.publisher) params.set('publisher', filters.publisher);
+            if (filters.scannedBy) params.set('scannedBy', filters.scannedBy);
+            if (filters.language) params.set('language', filters.language);
+            if (filters.year) params.set('year', filters.year);
+            if (filters.customKey && filters.customValue) {
+                params.set('customKey', filters.customKey);
+                params.set('customValue', filters.customValue);
             }
 
+            const response = await fetch(`/api/archive/list?${params.toString()}`);
+            if (!response.ok) throw new Error(`API Error ${response.status}`);
+
             const result = await response.json();
-            console.log('📥 API Response:', { page: currentPage, total: result.total, dataCount: result.data?.length });
             setData(result.data || []);
             setTotalCount(result.total || 0);
-            
-            // Cache the result with the dynamic key
+
             sessionStorage.setItem(cacheKey, JSON.stringify(result));
             sessionStorage.setItem(`${cacheKey}_time`, String(Date.now()));
-            
-            if (result.total === 0) {
-                console.warn('⚠️ Archive table is empty in database');
-            }
+
         } catch (error: any) {
-            console.error("Archive Fetch Error:", error.message, error.stack);
+            console.error('Archive Fetch Error:', error.message);
             setData([]);
             setTotalCount(0);
         } finally {
@@ -157,22 +164,24 @@ export default function MegaArchive() {
     }, [currentPage, searchTerm, filters, sortConfig]);
 
     useEffect(() => {
-        const delayDebounceFn = setTimeout(() => {
-            fetchArchiveData();
-        }, 500);
+        const t = setTimeout(() => fetchArchiveData(), 500);
+        return () => clearTimeout(t);
+    }, [fetchArchiveData]);
 
-        return () => clearTimeout(delayDebounceFn);
-    }, [fetchArchiveData, filters]);
-
-    // Load filter options from API (all unique values from database)
+    // Fetch filter options (authors, languages, years)
     useEffect(() => {
         const fetchFilters = async () => {
             try {
                 const res = await fetch('/api/archive/filters');
                 if (res.ok) {
                     const opts = await res.json();
+                    console.log('Fetched filter options:', opts);
                     setFilterOptions({
-                        authors: opts.authors || []
+                        publishers: opts.publishers || [],
+                        scannedBy: opts.scannedBy || [],
+                        languages: opts.languages || [],
+                        years: opts.years || [],
+                        customKeys: opts.customKeys || [],
                     });
                 }
             } catch (err) {
@@ -182,20 +191,43 @@ export default function MegaArchive() {
         fetchFilters();
     }, []);
 
+    // Fetch values for selected custom key
+    useEffect(() => {
+        const fetchValues = async () => {
+            if (!filters.customKey) {
+                setCustomFieldValues([]);
+                return;
+            }
+            try {
+                setIsFetchingValues(true);
+                const res = await fetch(`/api/archive/custom-values?key=${encodeURIComponent(filters.customKey)}`);
+                if (res.ok) {
+                    const values = await res.json();
+                    setCustomFieldValues(values || []);
+                }
+            } catch (err) {
+                console.error('Failed to fetch custom values:', err);
+            } finally {
+                setIsFetchingValues(false);
+            }
+        };
+        fetchValues();
+    }, [filters.customKey]);
+
     const clearFilters = () => {
-        setFilters({ author: '' });
+        setFilters({ publisher: '', scannedBy: '', language: '', year: '', customKey: '', customValue: '' });
         setSearchTerm('');
         setCurrentPage(1);
-        sessionStorage.removeItem('mega_search');
-        sessionStorage.removeItem('mega_filters');
-        sessionStorage.removeItem('mega_page');
+        ['mega_search', 'mega_filters', 'mega_page'].forEach(k => sessionStorage.removeItem(k));
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
+
+    const activeFilterCount = [filters.publisher, filters.scannedBy, filters.language, filters.year, filters.customValue, searchTerm].filter(Boolean).length;
 
     const totalPages = Math.ceil(totalCount / itemsPerPage);
 
     const getPageNumbers = () => {
-        const pages = [];
+        const pages: (number | string)[] = [];
         if (totalPages <= 5) {
             for (let i = 1; i <= totalPages; i++) pages.push(i);
         } else {
@@ -210,28 +242,38 @@ export default function MegaArchive() {
         return pages;
     };
 
+    const goToPage = (p: number) => {
+        setCurrentPage(p);
+        window.scrollTo({ top: 400, behavior: 'smooth' });
+    };
+
     return (
         <div className="pt-24 pb-20 bg-brand-bg min-h-screen">
             <SEO title={isSindhi ? "ميگا آرڪائيو" : "Mega Archive"} />
 
             <PageHeader
                 title={isSindhi ? "ميگا آرڪائيو" : "Mega Archive"}
-                description={isSindhi ? "انسٽيٽيوٽ جي تمام اسڪين ٿيل فائلن جو مڪمل رڪارڊ." : "Complete digital ledger of all scanned artifacts and files."}
+                description={isSindhi
+                    ? "تمام ڊجيٽائيز ٿيل فائلن جو مڪمل رڪارڊ."
+                    : "Complete Records of all digitized Books."}
                 icon={<Database className="w-12 h-12 text-brand-accent" />}
             />
 
-            {/* --- CONTROL BAR --- */}
+            {/* CONTROL BAR */}
             <section className="max-w-7xl mx-auto px-4 mt-12 space-y-4" dir="ltr">
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2 bg-brand-accent/10 text-brand-accent px-4 py-2 rounded-full border border-brand-accent/20">
                         <HardDrive size={16} />
-                        <span className="text-sm font-bold tracking-widest ">
-                            {searchTerm || filters.author
-                                ? `Search Result: `
-                                : `Total Records: `}
+                        <span className="text-sm font-bold tracking-widest">
+                            {activeFilterCount > 0 ? 'Search Result: ' : 'Total Records: '}
                             <span className="text-brand-primary">{totalCount.toLocaleString()}</span>
                         </span>
                     </div>
+                    {activeFilterCount > 0 && (
+                        <button onClick={clearFilters} className="text-xs font-bold text-brand-accent hover:underline">
+                            Clear filters ({activeFilterCount})
+                        </button>
+                    )}
                 </div>
 
                 <div className="glass p-6 rounded-[2.5rem] border border-brand-border/50 bg-brand-surface/20 shadow-2xl backdrop-blur-xl">
@@ -248,12 +290,26 @@ export default function MegaArchive() {
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <button onClick={() => setShowColumnSettings(!showColumnSettings)} className={cn("p-4 rounded-2xl border transition-all flex items-center gap-2", showColumnSettings ? "bg-brand-accent text-white" : "bg-brand-surface border-brand-border text-brand-primary")}>
-                                <Settings2 size={20} /> <span className="text-xs font-bold  hidden md:inline">Display</span>
+                            <button
+                                onClick={() => setShowColumnSettings(!showColumnSettings)}
+                                className={cn("p-4 rounded-2xl border transition-all flex items-center gap-2",
+                                    showColumnSettings ? "bg-brand-accent text-white" : "bg-brand-surface border-brand-border text-brand-primary")}
+                            >
+                                <Settings2 size={20} />
+                                <span className="text-xs font-bold hidden md:inline">Display</span>
                             </button>
-                            <button onClick={() => setShowFilters(!showFilters)} className={cn("p-4 rounded-2xl border transition-all flex items-center gap-2", showFilters ? "bg-brand-accent text-white" : "bg-brand-surface border-brand-border text-brand-primary")}>
+                            <button
+                                onClick={() => setShowFilters(!showFilters)}
+                                className={cn("p-4 rounded-2xl border transition-all flex items-center gap-2 relative",
+                                    showFilters ? "bg-brand-accent text-white" : "bg-brand-surface border-brand-border text-brand-primary")}
+                            >
                                 <Filter size={20} />
                                 <span className="text-xs font-bold hidden md:inline">Filters</span>
+                                {activeFilterCount > 0 && (
+                                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-brand-accent text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                                        {activeFilterCount}
+                                    </span>
+                                )}
                             </button>
                             <div className="flex bg-brand-bg/50 p-1 border border-brand-border rounded-2xl">
                                 <button onClick={() => setViewMode('grid')} className={cn("p-2 rounded-xl", viewMode === 'grid' ? "bg-brand-accent text-white shadow-lg" : "text-brand-secondary")}>
@@ -263,10 +319,10 @@ export default function MegaArchive() {
                                     <ListIcon size={20} />
                                 </button>
                             </div>
-                            <button 
-                                onClick={() => setShowSortOptions(!showSortOptions)} 
-                                className={cn("p-4 rounded-2xl border transition-all flex items-center gap-2", showSortOptions ? "bg-brand-accent text-white" : "bg-brand-surface border-brand-border text-brand-primary")}
-                                title="Sort Options"
+                            <button
+                                onClick={() => setShowSortOptions(!showSortOptions)}
+                                className={cn("p-4 rounded-2xl border transition-all flex items-center gap-2",
+                                    showSortOptions ? "bg-brand-accent text-white" : "bg-brand-surface border-brand-border text-brand-primary")}
                             >
                                 <ArrowUpDown size={20} />
                                 <span className="text-xs font-bold hidden md:inline">Sort</span>
@@ -274,61 +330,55 @@ export default function MegaArchive() {
                         </div>
                     </div>
 
+                    {/* Sort Options */}
                     <AnimatePresence>
                         {showSortOptions && (
                             <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden mt-6 pt-6 border-t border-brand-border/30">
                                 <div className="flex flex-wrap items-center gap-4">
                                     <div className="flex bg-brand-bg/50 p-1 border border-brand-border rounded-2xl">
-                                        {[
-                                            { label: 'ID', key: 'id' },
-                                            { label: 'Title', key: 'title' },
-                                            { label: 'Author', key: 'author' },
-                                            { label: 'Pages', key: 'pages' }
-                                        ].map((opt) => (
-                                            <button 
+                                        {[{ label: 'ID', key: 'id' }, { label: 'Title', key: 'title' }, { label: 'Author', key: 'author' }, { label: 'Pages', key: 'pages' }].map((opt) => (
+                                            <button
                                                 key={opt.key}
                                                 onClick={() => { setSortConfig(prev => ({ ...prev, key: opt.key })); setCurrentPage(1); }}
-                                                className={cn(
-                                                    "px-4 py-2 rounded-xl text-[10px] font-bold transition-all",
-                                                    sortConfig.key === opt.key ? "bg-brand-accent text-white" : "text-brand-secondary hover:bg-brand-accent/10"
-                                                )}
+                                                className={cn("px-4 py-2 rounded-xl text-[10px] font-bold transition-all",
+                                                    sortConfig.key === opt.key ? "bg-brand-accent text-white" : "text-brand-secondary hover:bg-brand-accent/10")}
                                             >
                                                 {opt.label}
                                             </button>
                                         ))}
                                     </div>
                                     <div className="flex bg-brand-bg/50 p-1 border border-brand-border rounded-2xl">
-                                        <button 
-                                            onClick={() => { setSortConfig(prev => ({ ...prev, order: 'ASC' })); setCurrentPage(1); }}
-                                            className={cn(
-                                                "p-2 rounded-xl flex items-center gap-2 px-4 transition-all",
-                                                sortConfig.order === 'ASC' ? "bg-brand-accent text-white shadow-lg" : "text-brand-secondary"
-                                            )}
-                                        >
-                                            <SortAsc size={16} /> <span className="text-[10px] font-bold uppercase">Asc</span>
-                                        </button>
-                                        <button 
-                                            onClick={() => { setSortConfig(prev => ({ ...prev, order: 'DESC' })); setCurrentPage(1); }}
-                                            className={cn(
-                                                "p-2 rounded-xl flex items-center gap-2 px-4 transition-all",
-                                                sortConfig.order === 'DESC' ? "bg-brand-accent text-white shadow-lg" : "text-brand-secondary"
-                                            )}
-                                        >
-                                            <SortDesc size={16} /> <span className="text-[10px] font-bold uppercase">Desc</span>
-                                        </button>
+                                        {[{ label: 'Asc', order: 'ASC', Icon: SortAsc }, { label: 'Desc', order: 'DESC', Icon: SortDesc }].map(({ label, order, Icon }) => (
+                                            <button
+                                                key={order}
+                                                onClick={() => { setSortConfig(prev => ({ ...prev, order })); setCurrentPage(1); }}
+                                                className={cn("p-2 rounded-xl flex items-center gap-2 px-4 transition-all",
+                                                    sortConfig.order === order ? "bg-brand-accent text-white shadow-lg" : "text-brand-secondary")}
+                                            >
+                                                <Icon size={16} /> <span className="text-[10px] font-bold">{label}</span>
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
 
+                    {/* Column Settings */}
                     <AnimatePresence>
                         {showColumnSettings && (
                             <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
                                 <div className="flex flex-wrap gap-2 mt-6 p-4 bg-brand-bg/40 rounded-2xl border border-brand-border/40">
                                     {(Object.keys(visibleColumns) as Array<keyof typeof visibleColumns>).map((col) => (
-                                        <button key={col} onClick={() => setVisibleColumns(prev => ({ ...prev, [col]: !prev[col] }))} className={cn("px-4 py-2 rounded-full text-[10px] font-bold border transition-all ", visibleColumns[col] ? "bg-brand-accent/20 border-brand-accent text-brand-accent" : "bg-brand-surface border-brand-border text-brand-secondary")}>
-                                            {col.toUpperCase()}
+                                        <button
+                                            key={col}
+                                            onClick={() => setVisibleColumns(prev => ({ ...prev, [col]: !prev[col] }))}
+                                            className={cn("px-4 py-2 rounded-full text-[10px] font-bold border transition-all",
+                                                visibleColumns[col]
+                                                    ? "bg-brand-accent/20 border-brand-accent text-brand-accent"
+                                                    : "bg-brand-surface border-brand-border text-brand-secondary")}
+                                        >
+                                            {col.replace(/([A-Z])/g, ' $1').toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                                         </button>
                                     ))}
                                 </div>
@@ -336,19 +386,66 @@ export default function MegaArchive() {
                         )}
                     </AnimatePresence>
 
+                    {/* Filters */}
                     <AnimatePresence>
                         {showFilters && (
                             <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden mt-6 pt-6 border-t border-brand-border/30">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {/* Language */}
                                     <div className="flex flex-col gap-2">
-                                        <label className="text-[10px] text-brand-secondary uppercase font-bold px-1">Filter by Author</label>
+                                        <label className="text-[10px] text-brand-secondary font-bold px-1">Language</label>
                                         <select
-                                            value={filters.author}
-                                            onChange={(e) => { setFilters(f => ({ ...f, author: e.target.value })); setCurrentPage(1); }}
-                                            className="w-full bg-brand-bg border border-brand-border p-3 rounded-xl text-xs text-brand-primary outline-none"
+                                            value={filters.language}
+                                            onChange={(e) => { setFilters(f => ({ ...f, language: e.target.value })); setCurrentPage(1); }}
+                                            className="w-full bg-brand-bg/80 border border-brand-border p-4 rounded-2xl text-xs text-brand-primary outline-none focus:border-brand-accent transition-all hover:bg-brand-bg select-custom"
                                         >
-                                            <option value="">All Authors</option>
-                                            {filterOptions.authors.map(a => <option key={a} value={a}>{a}</option>)}
+                                            <option value="">All Languages</option>
+                                            {filterOptions.languages.map(l => <option key={l} value={l}>{l}</option>)}
+                                        </select>
+                                    </div>
+
+                                    {/* Year */}
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[10px] text-brand-secondary font-bold px-1">Year</label>
+                                        <select
+                                            value={filters.year}
+                                            onChange={(e) => { setFilters(f => ({ ...f, year: e.target.value })); setCurrentPage(1); }}
+                                            className="w-full bg-brand-bg/80 border border-brand-border p-4 rounded-2xl text-xs text-brand-primary outline-none focus:border-brand-accent transition-all hover:bg-brand-bg select-custom"
+                                        >
+                                            <option value="">All Years</option>
+                                            {filterOptions.years.map(y => <option key={y} value={y}>{y}</option>)}
+                                        </select>
+                                    </div>
+
+                                    {/* Advanced Custom Filter - Category Selection */}
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[10px] text-brand-secondary font-bold px-1">Advanced Category</label>
+                                        <select
+                                            value={filters.customKey}
+                                            onChange={(e) => { setFilters(f => ({ ...f, customKey: e.target.value, customValue: '' })); setCurrentPage(1); }}
+                                            className="w-full bg-brand-bg/80 border border-brand-border p-4 rounded-2xl text-xs text-brand-primary outline-none focus:border-brand-accent transition-all hover:bg-brand-bg select-custom"
+                                        >
+                                            <option value="">Select Category...</option>
+                                            <option key={k} value={k}>
+                                                {k.replace(/([A-Z])/g, ' $1').toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    {/* Advanced Custom Filter - Value Selection */}
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[10px] text-brand-secondary font-bold px-1">Value Selection</label>
+                                        <select
+                                            disabled={!filters.customKey || isFetchingValues}
+                                            value={filters.customValue}
+                                            onChange={(e) => { setFilters(f => ({ ...f, customValue: e.target.value })); setCurrentPage(1); }}
+                                            className={cn(
+                                                "w-full bg-brand-bg/80 border border-brand-border p-4 rounded-2xl text-xs text-brand-primary outline-none focus:border-brand-accent transition-all hover:bg-brand-bg select-custom",
+                                                (!filters.customKey || isFetchingValues) && "opacity-50 cursor-not-allowed"
+                                            )}
+                                        >
+                                            <option value="">{isFetchingValues ? 'Loading...' : filters.customKey ? 'Select Value...' : 'Waiting for Category...'}</option>
+                                            {customFieldValues.map(v => <option key={v} value={v}>{v}</option>)}
                                         </select>
                                     </div>
                                 </div>
@@ -366,7 +463,7 @@ export default function MegaArchive() {
                 </div>
             </section>
 
-            {/* --- DATA DISPLAY (Grid/List) --- */}
+            {/* DATA DISPLAY */}
             <section className="max-w-7xl mx-auto px-4 mt-8">
                 <div className="min-h-[500px]">
                     {loading ? (
@@ -382,7 +479,7 @@ export default function MegaArchive() {
                                     <AlertCircle size={48} className="text-brand-secondary/40" />
                                 </div>
                                 <p className="font-bold text-brand-primary text-lg">No records found</p>
-                                <p className="text-brand-secondary text-sm mt-1 max-w-xs">Try adjusting your search filters to find what you're looking for.</p>
+                                <p className="text-brand-secondary text-sm mt-1 max-w-xs">Try adjusting your search filters.</p>
                                 <button onClick={clearFilters} className="mt-6 text-brand-accent text-xs font-bold uppercase tracking-widest hover:underline">
                                     Clear all filters
                                 </button>
@@ -391,56 +488,86 @@ export default function MegaArchive() {
                     ) : viewMode === 'grid' ? (
                         /* GRID VIEW */
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-                            {data.map((item) => (
-                                <motion.div key={item.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => navigate(`/mega/${item.id}`)} className="group flex flex-col h-full relative cursor-pointer">
-                                    <div className="aspect-[3/4.5] relative flex items-center justify-center">
-                                        <Book3D
-                                            title={item.title || item.file_name}
-                                            thumbnailUrl={item.thumb_path}
-                                            className="w-full h-full z-10"
-                                        />
-                                    </div>
-
-                                    <div className="pt-6 pb-2 flex flex-col items-center text-center space-y-4">
-                                        <div className="space-y-1 w-full flex flex-col items-center px-2">
-                                            <h3 className="text-brand-primary font-black text-lg leading-snug truncate w-full" title={item.title || item.file_name}>
-                                                {item.title || item.file_name}
-                                            </h3>
-                                            <p className="text-brand-secondary text-xs sm:text-sm font-semibold tracking-wide mt-1 truncate w-full" title={item.author || 'Unknown Author'}>
-                                                <span className="opacity-60 font-medium">By: </span>
-                                                {item.author || 'Unknown Author'}
-                                            </p>
-                                            <p className="text-brand-secondary/60 text-[10px] truncate w-full px-4" title={item.file_name}>
-                                                {item.file_name}
-                                            </p>
+                            {data.map((item) => {
+                                const meta = item.custom_data || {};
+                                return (
+                                    <motion.div
+                                        key={item.id}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        onClick={() => navigate(`/mega/${item.id}`)}
+                                        className="group flex flex-col h-full relative cursor-pointer"
+                                    >
+                                        <div className="aspect-[3/4.5] relative flex items-center justify-center">
+                                            <Book3D
+                                                title={item.title || item.file_name}
+                                                thumbnailUrl={item.thumb_path}
+                                                className="w-full h-full z-10"
+                                            />
                                         </div>
 
-                                        <div className="w-[90%] max-w-[300px] bg-brand-surface border border-brand-border/40 rounded-[1.2rem] py-3 px-2 flex flex-row items-center justify-evenly shadow-sm opacity-90 group-hover:opacity-100 transition-all duration-300 group-hover:-translate-y-1">
-                                            <div className="flex flex-col items-center flex-1 overflow-hidden">
-                                                <span className="text-brand-accent font-black text-sm lg:text-base">{item.pages || "0"}</span>
-                                                <span className="text-brand-secondary text-[9px] tracking-wider mt-1">{isSindhi ? "صفحا" : "Pages"}</span>
+                                        <div className="pt-6 pb-2 flex flex-col items-center text-center space-y-4">
+                                            <div className="space-y-1 w-full flex flex-col items-center px-2">
+                                                <h3 className="text-brand-primary font-black text-lg leading-snug truncate w-full" title={item.title || item.file_name}>
+                                                    {item.title || item.file_name}
+                                                </h3>
+                                                <p className="text-brand-secondary text-xs font-semibold tracking-wide mt-1 truncate w-full">
+                                                    <span className="opacity-60 font-medium">By: </span>
+                                                    {item.author || 'Unknown Author'}
+                                                </p>
+
+                                                {/* custom_data badges */}
+                                                <div className="flex flex-wrap justify-center gap-1 mt-2">
+                                                    {meta.Language && (
+                                                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                                                            {meta.Language}
+                                                        </span>
+                                                    )}
+                                                    {meta.DateOfPublication && (
+                                                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-green-500/10 text-green-500 border border-green-500/20">
+                                                            {meta.DateOfPublication}
+                                                        </span>
+                                                    )}
+                                                    {meta.ScannedBy && (
+                                                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-purple-500/10 text-purple-500 border border-purple-500/20">
+                                                            {meta.ScannedBy}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <p className="text-brand-secondary/60 text-[10px] truncate w-full px-4 mt-1" title={item.file_name}>
+                                                    {item.file_name}
+                                                </p>
                                             </div>
-                                            <div className="w-[1px] h-6 bg-brand-border/60"></div>
-                                            <a 
-                                                href={item.folder_node ? `https://mega.nz/fm/${item.folder_node}` : "#"} 
-                                                target="_blank" 
-                                                rel="noopener noreferrer" 
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="flex flex-col items-center flex-1 overflow-hidden px-1 hover:bg-brand-accent/5 rounded-lg transition-all border border-transparent hover:border-brand-accent/20"
-                                            >
-                                                <span className="text-brand-accent font-black text-sm lg:text-base truncate w-full text-center flex items-center justify-center gap-1">
-                                                    {isSindhi ? "فولڊر" : "Folder"}
-                                                    <ExternalLink size={10} className="hidden group-hover:inline-block transition-opacity" />
-                                                </span>
-                                                <span className="text-brand-secondary text-[9px] tracking-wider mt-1 uppercase font-bold">{isSindhi ? "کوليو" : "Open"}</span>
-                                            </a>
+
+                                            <div className="w-[90%] max-w-[300px] bg-brand-surface border border-brand-border/40 rounded-[1.2rem] py-3 px-2 flex flex-row items-center justify-evenly shadow-sm">
+                                                <div className="flex flex-col items-center flex-1">
+                                                    <span className="text-brand-accent font-black text-sm">{item.pages || '0'}</span>
+                                                    <span className="text-brand-secondary text-[9px] tracking-wider mt-1">{isSindhi ? "صفحا" : "Pages"}</span>
+                                                </div>
+                                                <div className="w-[1px] h-6 bg-brand-border/60" />
+
+                                                <a
+                                                    href={item.folder_node ? `https://mega.nz/fm/${item.folder_node}` : '#'}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="flex flex-col items-center flex-1 px-1 hover:bg-brand-accent/5 rounded-lg transition-all"
+                                                >
+                                                    <span className="text-brand-accent font-black text-sm flex items-center gap-1">
+                                                        {isSindhi ? "فولڊر" : "Folder"}
+                                                        <ExternalLink size={10} />
+                                                    </span>
+                                                    <span className="text-brand-secondary text-[9px] tracking-wider mt-1 uppercase font-bold">{isSindhi ? "کوليو" : "Open"}</span>
+                                                </a>
+                                            </div>
                                         </div>
-                                    </div>
-                                </motion.div>
-                            ))}
+                                    </motion.div>
+                                );
+                            })}
                         </div>
                     ) : (
-                        /* LIST VIEW (Table) */
+                        /* LIST VIEW */
                         <div className="w-full overflow-x-auto rounded-[2.5rem] border border-brand-border bg-brand-surface/20">
                             <table className="w-full text-left border-collapse min-w-[800px]">
                                 <thead>
@@ -449,94 +576,147 @@ export default function MegaArchive() {
                                         {visibleColumns.title && <th className="p-5">File Details</th>}
                                         {visibleColumns.author && <th className="p-5">Author</th>}
                                         {visibleColumns.pages && <th className="p-5 text-center">Pages</th>}
-                                        {visibleColumns.folder && <th className="p-5">Folder Path</th>}
+                                        {visibleColumns.language && <th className="p-5">Language</th>}
+                                        {visibleColumns.year && <th className="p-5">Year</th>}
+                                        {visibleColumns.scannedBy && <th className="p-5">Scanned By</th>}
+                                        {visibleColumns.folder && <th className="p-5">Folder</th>}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-brand-border/30">
-                                    {data.map((item) => (
-                                        <tr key={item.id} onClick={() => navigate(`/mega/${item.id}`)} className="hover:bg-brand-accent/5 transition-colors group cursor-pointer">
-                                            {visibleColumns.id && <td className="p-5 text-xs font-mono text-brand-secondary">#{item.id}</td>}
-                                            {visibleColumns.title && (
-                                                <td className="p-5 max-w-[350px]">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-10 h-14 bg-brand-surface rounded overflow-hidden flex items-center justify-center shadow-sm border border-brand-border/50 relative shrink-0">
-                                                            {item.thumb_path ? (
-                                                                <img src={item.thumb_path} alt="" className="w-full h-full object-cover" />
-                                                            ) : (
-                                                                <FileText className="w-5 h-5 text-brand-secondary/40" />
-                                                            )}
+                                    {data.map((item) => {
+                                        const meta = item.custom_data || {};
+                                        return (
+                                            <tr
+                                                key={item.id}
+                                                onClick={() => navigate(`/mega/${item.id}`)}
+                                                className="hover:bg-brand-accent/5 transition-colors cursor-pointer"
+                                            >
+                                                {visibleColumns.id && (
+                                                    <td className="p-5 text-xs font-mono text-brand-secondary">#{item.id}</td>
+                                                )}
+                                                {visibleColumns.title && (
+                                                    <td className="p-5 max-w-[350px]">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="w-10 h-14 bg-brand-surface rounded overflow-hidden flex items-center justify-center shadow-sm border border-brand-border/50 shrink-0">
+                                                                {item.thumb_path
+                                                                    ? <img src={item.thumb_path} alt="" className="w-full h-full object-cover" />
+                                                                    : <FileText className="w-5 h-5 text-brand-secondary/40" />
+                                                                }
+                                                            </div>
+                                                            <div className="flex flex-col min-w-0">
+                                                                <span className="text-sm font-bold text-brand-primary truncate" title={item.title || item.file_name}>
+                                                                    {item.title || item.file_name}
+                                                                </span>
+                                                                <span className="text-[10px] text-brand-secondary truncate">{item.file_name}</span>
+                                                                {meta.PublishedBy && (
+                                                                    <span className="text-[10px] text-brand-secondary/60 truncate mt-0.5">{meta.PublishedBy}</span>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                        <div className="flex flex-col min-w-0">
-                                                            <span className="text-sm font-bold text-brand-primary truncate" title={item.title || item.file_name}>
-                                                                {item.title || item.file_name}
+                                                    </td>
+                                                )}
+                                                {visibleColumns.author && (
+                                                    <td className="p-5 text-sm text-brand-primary font-medium">{item.author || '-'}</td>
+                                                )}
+                                                {visibleColumns.pages && (
+                                                    <td className="p-5 text-center">
+                                                        <span className="bg-brand-accent/10 px-3 py-1 rounded-full text-xs font-bold text-brand-accent">
+                                                            {item.pages || 0}
+                                                        </span>
+                                                    </td>
+                                                )}
+                                                {visibleColumns.language && (
+                                                    <td className="p-5">
+                                                        {meta.Language && (
+                                                            <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                                                                {meta.Language}
                                                             </span>
-                                                            <span className="text-[10px] text-brand-secondary truncate">{item.file_name}</span>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            )}
-                                            {visibleColumns.author && <td className="p-5 text-sm text-brand-primary font-medium">{item.author || '-'}</td>}
-                                            {visibleColumns.pages && (
-                                                <td className="p-5 text-center">
-                                                    <span className="bg-brand-accent/10 px-3 py-1 rounded-full text-xs font-bold text-brand-accent">
-                                                        {item.pages || 0}
-                                                    </span>
-                                                </td>
-                                            )}
-                                            {visibleColumns.folder && (
-                                                <td className="p-5">
-                                                    <a 
-                                                       href={item.folder_node ? `https://mega.nz/fm/${item.folder_node}` : "#"} 
-                                                       target="_blank" 
-                                                       rel="noopener noreferrer"
-                                                       onClick={(e) => e.stopPropagation()}
-                                                       className={cn(
-                                                           "text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg border flex items-center gap-2 max-w-fit transition-all",
-                                                           item.folder_node 
-                                                               ? "border-brand-accent/20 bg-brand-accent/5 text-brand-accent hover:bg-brand-accent hover:text-white" 
-                                                               : "border-brand-border/40 bg-brand-bg/30 text-brand-secondary/40 pointer-events-none"
-                                                       )}
-                                                    >
-                                                       <FolderOpen size={12} />
-                                                       {isSindhi ? "فولڊر کوليو" : "Open Folder"}
-                                                       <ExternalLink size={10} />
-                                                    </a>
-                                                </td>
-                                            )}
-                                        </tr>
-                                    ))}
+                                                        )}
+                                                    </td>
+                                                )}
+                                                {visibleColumns.year && (
+                                                    <td className="p-5 text-sm text-brand-secondary font-mono">
+                                                        {meta.DateOfPublication || '-'}
+                                                    </td>
+                                                )}
+                                                {visibleColumns.scannedBy && (
+                                                    <td className="p-5">
+                                                        {meta.ScannedBy ? (
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-6 h-6 rounded-full bg-brand-accent/10 border border-brand-accent/20 flex items-center justify-center shrink-0">
+                                                                    <span className="text-[8px] font-black text-brand-accent">
+                                                                        {meta.ScannedBy.charAt(0).toUpperCase()}
+                                                                    </span>
+                                                                </div>
+                                                                <span className="text-xs text-brand-secondary truncate max-w-[120px]" title={meta.ScannedBy}>
+                                                                    {meta.ScannedBy}
+                                                                </span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-brand-secondary/30 text-xs">—</span>
+                                                        )}
+                                                    </td>
+                                                )}
+                                                {visibleColumns.folder && (
+                                                    <td className="p-5">
+                                                        <a
+                                                            href={item.folder_node ? `https://mega.nz/fm/${item.folder_node}` : '#'}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            className={cn(
+                                                                "text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg border flex items-center gap-2 max-w-fit transition-all",
+                                                                item.folder_node
+                                                                    ? "border-brand-accent/20 bg-brand-accent/5 text-brand-accent hover:bg-brand-accent hover:text-white"
+                                                                    : "border-brand-border/40 bg-brand-bg/30 text-brand-secondary/40 pointer-events-none"
+                                                            )}
+                                                        >
+                                                            <FolderOpen size={12} />
+                                                            {isSindhi ? "فولڊر کوليو" : "Open Folder"}
+                                                            <ExternalLink size={10} />
+                                                        </a>
+                                                    </td>
+                                                )}
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
                     )}
                 </div>
 
-                {/* --- ADVANCED PAGINATION --- */}
+                {/* PAGINATION */}
                 {!loading && totalPages > 1 && (
                     <div className="flex flex-wrap justify-center items-center gap-2 mt-16 pb-10" dir="ltr">
                         <button
                             disabled={currentPage === 1}
-                            onClick={() => { setCurrentPage(prev => prev - 1); window.scrollTo({ top: 400, behavior: 'smooth' }); }}
+                            onClick={() => goToPage(currentPage - 1)}
                             className="p-3 bg-brand-surface border border-brand-border rounded-xl text-brand-secondary disabled:opacity-20 hover:border-brand-accent transition-all"
                         >
                             <ChevronLeft size={20} />
                         </button>
-                        {getPageNumbers().map((p, idx) => (
+                        {getPageNumbers().map((p, idx) =>
                             p === '...' ? (
                                 <span key={`dots-${idx}`} className="px-2 text-brand-secondary"><MoreHorizontal size={18} /></span>
                             ) : (
                                 <button
                                     key={`page-${p}`}
-                                    onClick={() => { setCurrentPage(p as number); window.scrollTo({ top: 400, behavior: 'smooth' }); }}
-                                    className={cn("w-12 h-12 rounded-xl font-bold text-sm border transition-all", currentPage === p ? "bg-brand-accent border-brand-accent text-white shadow-lg" : "bg-brand-surface border-brand-border text-brand-secondary hover:border-brand-accent")}
+                                    onClick={() => goToPage(p as number)}
+                                    className={cn(
+                                        "w-12 h-12 rounded-xl font-bold text-sm border transition-all",
+                                        currentPage === p
+                                            ? "bg-brand-accent border-brand-accent text-white shadow-lg"
+                                            : "bg-brand-surface border-brand-border text-brand-secondary hover:border-brand-accent"
+                                    )}
                                 >
                                     {p}
                                 </button>
                             )
-                        ))}
+                        )}
                         <button
                             disabled={currentPage === totalPages}
-                            onClick={() => { setCurrentPage(prev => prev + 1); window.scrollTo({ top: 400, behavior: 'smooth' }); }}
+                            onClick={() => goToPage(currentPage + 1)}
                             className="p-3 bg-brand-surface border border-brand-border rounded-xl text-brand-secondary disabled:opacity-20 hover:border-brand-accent transition-all"
                         >
                             <ChevronRight size={20} />
