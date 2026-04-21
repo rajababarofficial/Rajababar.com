@@ -431,9 +431,9 @@ export default function MegaArchive() {
                                             className="w-full bg-brand-bg/80 border border-brand-border p-4 rounded-2xl text-xs text-brand-primary outline-none focus:border-brand-accent transition-all hover:bg-brand-bg select-custom"
                                         >
                                             <option value="">Select Category...</option>
-                                            <option key={k} value={k}>
-                                                {k.replace(/([A-Z])/g, ' $1').toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                                            </option>
+                                            {filterOptions.customKeys.map(k => (
+                                                <option key={k} value={k}>{k}</option>
+                                            ))}
                                         </select>
                                     </div>
 
