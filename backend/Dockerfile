@@ -4,4 +4,4 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 EXPOSE 3001
-CMD ["npx", "tsx", "src/api/server.ts"]
+CMD ["npm", "run", "dev"]

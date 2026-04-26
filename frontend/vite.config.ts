@@ -23,9 +23,9 @@ export default defineConfig(({ mode }) => {
       hmr: process.env.DISABLE_HMR !== 'true',
       proxy: {
         '/api': {
-          target: 'https://api.rajababar.com',
+          target: env.VITE_API_URL || 'http://localhost:3001',
           changeOrigin: true,
-          secure: true,
+          secure: false,
         },
       },
     },

@@ -15,6 +15,7 @@ import { getDatabase, syncWithPostgres, semanticSearch } from '@/src/utils/db';
 import SEO from '@/src/components/layout/SEO';
 import { RefreshCw, Sparkles } from 'lucide-react';
 import Book3D from '@/src/components/Book3D';
+import { getApiUrl } from '@/src/utils/api';
 
 export default function Library() {
   const { isSindhi } = useLanguage();
@@ -71,7 +72,7 @@ export default function Library() {
   useEffect(() => {
     const fetchGlobalInfo = async () => {
       try {
-        const res = await fetch('/api/library/info');
+        const res = await fetch(getApiUrl('/api/library/info'));
         if (res.ok) {
           const data = await res.json();
           setGlobalTotal(data.total);

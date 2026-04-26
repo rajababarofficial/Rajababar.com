@@ -15,6 +15,7 @@ import { useLanguage } from '@/src/context/LanguageContext';
 import { cn } from '@/src/utils/cn';
 import SEO from '@/src/components/layout/SEO';
 import Book3D from '@/src/components/Book3D';
+import { getApiUrl } from '@/src/utils/api';
 
 interface BookMeta {
     Language?: string;
@@ -144,7 +145,7 @@ export default function MegaArchive() {
                 params.set('customValue', filters.customValue);
             }
 
-            const response = await fetch(`/api/archive/list?${params.toString()}`);
+            const response = await fetch(getApiUrl(`/api/archive/list?${params.toString()}`));
             if (!response.ok) throw new Error(`API Error ${response.status}`);
 
             const result = await response.json();
@@ -176,7 +177,7 @@ export default function MegaArchive() {
     useEffect(() => {
         const fetchFilters = async () => {
             try {
-                const res = await fetch('/api/archive/filters');
+                const res = await fetch(getApiUrl('/api/archive/filters'));
                 if (res.ok) {
                     const opts = await res.json();
                     console.log('Filters Received:', opts);
@@ -205,7 +206,7 @@ export default function MegaArchive() {
             }
             try {
                 setIsFetchingValues(true);
-                const res = await fetch(`/api/archive/custom-values?key=${encodeURIComponent(filters.customKey)}`);
+                const res = await fetch(getApiUrl(`/api/archive/custom-values?key=${encodeURIComponent(filters.customKey)}`));
                 if (res.ok) {
                     const values = await res.json();
                     setCustomFieldValues(values || []);

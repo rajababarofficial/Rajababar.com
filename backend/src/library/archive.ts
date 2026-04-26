@@ -3,19 +3,7 @@
  */
 
 import { Request, Response } from 'express';
-import { Pool } from 'pg';
-
-let pool: Pool | null = null;
-const getPool = () => {
-  if (!pool) {
-    pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-      max: 10,
-    });
-  }
-  return pool;
-};
+import { getPool } from './db';
 
 export const archiveListHandler = async (req: Request, res: Response) => {
   try {

@@ -25,6 +25,7 @@ import { cn } from "@/src/utils/cn";
 import ShareButton from "@/src/components/ShareButton";
 import SEO from "@/src/components/layout/SEO";
 import Book3D from "@/src/components/Book3D";
+import { getApiUrl } from "@/src/utils/api";
 
 // custom_data ke har field ka icon aur label
 const META_FIELD_CONFIG: Record<string, { label: string; icon: React.ReactNode }> = {
@@ -107,7 +108,7 @@ export default function MegaDetails() {
     const fetchDetails = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/archive/details?id=${id}`);
+        const response = await fetch(getApiUrl(`/api/archive/details?id=${id}`));
         if (!response.ok) throw new Error("Failed to fetch item details");
         const result = await response.json();
         setItem(result.data || result);

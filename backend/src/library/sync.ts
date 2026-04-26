@@ -1,19 +1,5 @@
 import { Request, Response } from 'express';
-import { Pool } from 'pg';
-
-let pool: Pool | null = null;
-
-const getPool = () => {
-  if (!pool) {
-    pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-      max: 10,
-      idleTimeoutMillis: 30000,
-    });
-  }
-  return pool;
-};
+import { getPool } from './db';
 
 export const syncHandler = async (req: Request, res: Response) => {
   try {
@@ -42,7 +28,7 @@ export const syncHandler = async (req: Request, res: Response) => {
       }
 
       const countRes = await client.query(
-        `SELECT COUNT(*) FROM "Books" WHERE ${whereClause}`,
+        `SELECT COUNT(*) FROM public.mhp WHERE ${whereClause}`,
         paramsCount
       );
       const totalNew = Number(countRes.rows[0].count);
@@ -52,8 +38,8 @@ export const syncHandler = async (req: Request, res: Response) => {
            id, title_en, title_sd,
            author_en, author_sd,
            category, publisher, year, language,
-           source_name, identifier, thumbnail, link
-         FROM "Books"
+           source_name, identifier, thumbnail, s3_key, s3_url
+         FROM public.mhp
          WHERE ${whereClause}
          ORDER BY CAST(id AS BIGINT) ASC
          LIMIT $2 OFFSET $3`,

@@ -9,6 +9,7 @@
  */
 
 import initSqlJs from 'sql.js';
+import { getApiUrl } from './api';
 
 let dbInstance: any = null;
 
@@ -131,7 +132,7 @@ export const syncWithPostgres = async (db: any): Promise<boolean> => {
     let lastSync = meta ? meta.lastSync : 0;
     
     while (true) {
-      const res = await fetch(`/api/library/sync?last_id=${lastId}&last_sync=${lastSync}&offset=${offset}&_t=${Date.now()}`);
+      const res = await fetch(getApiUrl(`/api/library/sync?last_id=${lastId}&last_sync=${lastSync}&offset=${offset}&_t=${Date.now()}`));
       if (!res.ok) {
         console.error('❌ Sync API failed:', res.status, await res.text());
         break;
@@ -202,7 +203,7 @@ const fetchInitialDb = async (): Promise<Uint8Array> => {
   console.log('📥 Fetching initial DB from server…');
 
   // Option A: Server se prebuilt SQLite file (fastest)
-  const res = await fetch('/api/library/init-db', { headers: { Accept: 'application/octet-stream' } });
+  const res = await fetch(getApiUrl('/api/library/init-db'), { headers: { Accept: 'application/octet-stream' } });
   if (!res.ok) throw new Error(`init-db failed: ${res.status}`);
 
   const buf = await res.arrayBuffer();
@@ -276,7 +277,7 @@ export interface BookResult {
 
 export const semanticSearch = async (query: string, limit = 20): Promise<BookResult[]> => {
   if (!query.trim()) return [];
-  const res = await fetch(`/api/library/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+  const res = await fetch(getApiUrl(`/api/library/search?q=${encodeURIComponent(query)}&limit=${limit}`));
   if (!res.ok) return [];
   const { results } = await res.json();
   return results ?? [];

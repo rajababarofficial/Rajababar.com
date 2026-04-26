@@ -1,0 +1,42 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "generate-fonts": "tsx scripts/generate-font-metadata.ts",
+    "generate-sitemap": "tsx scripts/generate-sitemap.ts",
+    "build": "npm run generate-fonts && npm run generate-sitemap && vite build",
+    "preview": "vite preview",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.13.0",
+    "lucide-react": "^0.546.0",
+    "motion": "^12.34.3",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.5.0",
+    "react-dropzone": "^15.0.0",
+    "react-modal": "^3.16.3",
+    "papaparse": "^5.5.3",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^5.4.624",
+    "sql.js": "^1.14.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.4",
+    "@tailwindcss/vite": "^4.1.14",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/node": "^22.14.0",
+    "autoprefixer": "^10.4.21",
+    "tailwindcss": "^4.1.14",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0",
+    "tsx": "^4.21.0"
+  }
+}
