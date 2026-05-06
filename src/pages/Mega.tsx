@@ -38,6 +38,9 @@ interface ArchiveItem {
     thumb_path: string;
     file_node: string;
     folder_node: string;
+    f_year?: number;
+    employee?: string;
+    month?: number;
 }
 
 export default function MegaArchive() {
@@ -50,14 +53,39 @@ export default function MegaArchive() {
     const [currentPage, setCurrentPage] = useState(() =>
         typeof window !== 'undefined' ? Number(sessionStorage.getItem('mega_page')) || 1 : 1
     );
-    const [filters, setFilters] = useState<{ publisher: string; scannedBy: string; language: string; year: string; customKey: string; customValue: string }>(() => {
+    const [filters, setFilters] = useState<{
+        publisher: string;
+        scannedBy: string;
+        language: string;
+        year: string;
+        fYear: string;
+        emp: string;
+        month: string;
+        customKey: string;
+        customValue: string;
+    }>(() => {
         if (typeof window !== 'undefined') {
             try {
                 const saved = sessionStorage.getItem('mega_filters');
-                return saved ? JSON.parse(saved) : { publisher: '', scannedBy: '', language: '', year: '', customKey: '', customValue: '' };
-            } catch { return { publisher: '', scannedBy: '', language: '', year: '', customKey: '', customValue: '' }; }
+                const defaultFilters = {
+                    publisher: '', scannedBy: '', language: '', year: '',
+                    fYear: '', emp: '', month: '',
+                    customKey: '', customValue: ''
+                };
+                return saved ? { ...defaultFilters, ...JSON.parse(saved) } : defaultFilters;
+            } catch {
+                return {
+                    publisher: '', scannedBy: '', language: '', year: '',
+                    fYear: '', emp: '', month: '',
+                    customKey: '', customValue: ''
+                };
+            }
         }
-        return { publisher: '', scannedBy: '', language: '', year: '', customKey: '', customValue: '' };
+        return {
+            publisher: '', scannedBy: '', language: '', year: '',
+            fYear: '', emp: '', month: '',
+            customKey: '', customValue: ''
+        };
     });
 
     const [data, setData] = useState<ArchiveItem[]>([]);
@@ -84,7 +112,7 @@ export default function MegaArchive() {
     );
 
     const [visibleColumns, setVisibleColumns] = useState({
-        id: true, title: true, author: true, pages: true, language: true, year: true, scannedBy: true, folder: true
+        id: true, title: true, author: true, pages: true, language: true, year: true, fYear: false, employee: false, month: false, scannedBy: true, folder: true
     });
 
     const [filterOptions, setFilterOptions] = useState({
@@ -92,6 +120,9 @@ export default function MegaArchive() {
         scannedBy: [] as string[],
         languages: [] as string[],
         years: [] as string[],
+        fYears: [] as string[],
+        employees: [] as string[],
+        months: [] as string[],
         customKeys: [] as string[],
     });
 
@@ -115,7 +146,7 @@ export default function MegaArchive() {
         try {
             setLoading(true);
 
-            const cacheKey = `mega_cache_${currentPage}_${searchTerm}_${filters.publisher}_${filters.scannedBy}_${filters.language}_${filters.year}_${filters.customKey}_${filters.customValue}_${sortConfig.key}_${sortConfig.order}`;
+            const cacheKey = `mega_cache_${currentPage}_${searchTerm}_${filters.publisher}_${filters.scannedBy}_${filters.language}_${filters.year}_${filters.fYear}_${filters.emp}_${filters.month}_${filters.customKey}_${filters.customValue}_${sortConfig.key}_${sortConfig.order}`;
             const cached = sessionStorage.getItem(cacheKey);
             const cacheTime = sessionStorage.getItem(`${cacheKey}_time`);
 
@@ -139,6 +170,9 @@ export default function MegaArchive() {
             if (filters.scannedBy) params.set('scannedBy', filters.scannedBy);
             if (filters.language) params.set('language', filters.language);
             if (filters.year) params.set('year', filters.year);
+            if (filters.fYear) params.set('fYear', filters.fYear);
+            if (filters.emp) params.set('emp', filters.emp);
+            if (filters.month) params.set('month', filters.month);
             if (filters.customKey && filters.customValue) {
                 params.set('customKey', filters.customKey);
                 params.set('customValue', filters.customValue);
@@ -186,6 +220,9 @@ export default function MegaArchive() {
                         scannedBy: finalOpts.scannedBy || [],
                         languages: finalOpts.languages || [],
                         years: finalOpts.years || [],
+                        fYears: finalOpts.fYears || [],
+                        employees: finalOpts.employees || [],
+                        months: finalOpts.months || [],
                         customKeys: finalOpts.customKeys || [],
                     });
                 }
@@ -220,14 +257,22 @@ export default function MegaArchive() {
     }, [filters.customKey]);
 
     const clearFilters = () => {
-        setFilters({ publisher: '', scannedBy: '', language: '', year: '', customKey: '', customValue: '' });
+        setFilters({
+            publisher: '', scannedBy: '', language: '', year: '',
+            fYear: '', emp: '', month: '',
+            customKey: '', customValue: ''
+        });
         setSearchTerm('');
         setCurrentPage(1);
         ['mega_search', 'mega_filters', 'mega_page'].forEach(k => sessionStorage.removeItem(k));
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const activeFilterCount = [filters.publisher, filters.scannedBy, filters.language, filters.year, filters.customValue, searchTerm].filter(Boolean).length;
+    const activeFilterCount = [
+        filters.publisher, filters.scannedBy, filters.language, filters.year,
+        filters.fYear, filters.emp, filters.month,
+        filters.customValue, searchTerm
+    ].filter(Boolean).length;
 
     const totalPages = Math.ceil(totalCount / itemsPerPage);
 
@@ -453,6 +498,47 @@ export default function MegaArchive() {
                                             {customFieldValues.map(v => <option key={v} value={v}>{v}</option>)}
                                         </select>
                                     </div>
+
+                                    {/* Year (from column) */}
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[10px] text-brand-secondary font-bold px-1">Year</label>
+                                        <select
+                                            value={filters.fYear}
+                                            onChange={(e) => { setFilters(f => ({ ...f, fYear: e.target.value })); setCurrentPage(1); }}
+                                            className="w-full bg-brand-bg/80 border border-brand-border p-4 rounded-2xl text-xs text-brand-primary outline-none focus:border-brand-accent transition-all hover:bg-brand-bg select-custom"
+                                        >
+                                            <option value="">All Years</option>
+                                            {filterOptions.fYears.map(y => <option key={y} value={y}>{y}</option>)}
+                                        </select>
+                                    </div>
+
+                                    {/* Emp */}
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[10px] text-brand-secondary font-bold px-1">Emp</label>
+                                        <select
+                                            value={filters.emp}
+                                            onChange={(e) => { setFilters(f => ({ ...f, emp: e.target.value })); setCurrentPage(1); }}
+                                            className="w-full bg-brand-bg/80 border border-brand-border p-4 rounded-2xl text-xs text-brand-primary outline-none focus:border-brand-accent transition-all hover:bg-brand-bg select-custom"
+                                        >
+                                            <option value="">All Employees</option>
+                                            {filterOptions.employees.map(e => <option key={e} value={e}>{e}</option>)}
+                                        </select>
+                                    </div>
+
+                                    {/* Month */}
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[10px] text-brand-secondary font-bold px-1">Month</label>
+                                        <select
+                                            value={filters.month}
+                                            onChange={(e) => { setFilters(f => ({ ...f, month: e.target.value })); setCurrentPage(1); }}
+                                            className="w-full bg-brand-bg/80 border border-brand-border p-4 rounded-2xl text-xs text-brand-primary outline-none focus:border-brand-accent transition-all hover:bg-brand-bg select-custom"
+                                        >
+                                            <option value="">All Months</option>
+                                            {filterOptions.months.map(m => (
+                                                <option key={m} value={m}>{m}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
                                 <div className="flex justify-end mt-6 pt-4 border-t border-brand-border/20">
                                     <button
@@ -538,6 +624,21 @@ export default function MegaArchive() {
                                                             {meta.ScannedBy}
                                                         </span>
                                                     )}
+                                                    {visibleColumns.fYear && item.f_year && (
+                                                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-orange-500/10 text-orange-500 border border-orange-500/20">
+                                                            Year: {item.f_year}
+                                                        </span>
+                                                    )}
+                                                    {visibleColumns.employee && item.employee && (
+                                                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-pink-500/10 text-pink-500 border border-pink-500/20">
+                                                            Emp: {item.employee}
+                                                        </span>
+                                                    )}
+                                                    {visibleColumns.month && item.month && (
+                                                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-cyan-500/10 text-cyan-500 border border-cyan-500/20">
+                                                            Month: {item.month}
+                                                        </span>
+                                                    )}
                                                 </div>
 
                                                 <p className="text-brand-secondary/60 text-[10px] truncate w-full px-4 mt-1" title={item.file_name}>
@@ -583,6 +684,9 @@ export default function MegaArchive() {
                                         {visibleColumns.pages && <th className="p-5 text-center">Pages</th>}
                                         {visibleColumns.language && <th className="p-5">Language</th>}
                                         {visibleColumns.year && <th className="p-5">Year</th>}
+                                        {visibleColumns.fYear && <th className="p-5">F_Year</th>}
+                                        {visibleColumns.employee && <th className="p-5">Employee</th>}
+                                        {visibleColumns.month && <th className="p-5">Month</th>}
                                         {visibleColumns.scannedBy && <th className="p-5">Scanned By</th>}
                                         {visibleColumns.folder && <th className="p-5">Folder</th>}
                                     </tr>
@@ -642,6 +746,21 @@ export default function MegaArchive() {
                                                 {visibleColumns.year && (
                                                     <td className="p-5 text-sm text-brand-secondary font-mono">
                                                         {meta.DateOfPublication || '-'}
+                                                    </td>
+                                                )}
+                                                {visibleColumns.fYear && (
+                                                    <td className="p-5 text-sm text-brand-secondary font-mono">
+                                                        {item.f_year || '-'}
+                                                    </td>
+                                                )}
+                                                {visibleColumns.employee && (
+                                                    <td className="p-5 text-sm text-brand-primary">
+                                                        {item.employee || '-'}
+                                                    </td>
+                                                )}
+                                                {visibleColumns.month && (
+                                                    <td className="p-5 text-sm text-brand-secondary">
+                                                        {item.month || '-'}
                                                     </td>
                                                 )}
                                                 {visibleColumns.scannedBy && (

@@ -24,13 +24,16 @@ export const archiveListHandler = async (req: Request, res: Response) => {
     const search = (req.query.search as string || '').trim();
     const language = (req.query.language as string || '').trim();
     const year = (req.query.year as string || '').trim();
+    const fYear = (req.query.fYear as string || '').trim();
+    const emp = (req.query.emp as string || '').trim();
+    const month = (req.query.month as string || '').trim();
     const customKey = (req.query.customKey as string || '').trim();
     const customValue = (req.query.customValue as string || '').trim();
     const sortBy = (req.query.sortBy as string || 'id');
     const sortOrder = (req.query.sortOrder as string || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
     const offset = (page - 1) * limit;
 
-    const allowedSortFields = ['id', 'file_name', 'title', 'author', 'pages'];
+    const allowedSortFields = ['id', 'file_name', 'title', 'author', 'pages', 'f_year', 'employee', 'month'];
     const finalSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'id';
 
     const client = await getPool().connect();
@@ -56,6 +59,21 @@ export const archiveListHandler = async (req: Request, res: Response) => {
       if (year) {
         params.push(year);
         conditions.push(`custom_data->>'DateOfPublication' ILIKE $${params.length}`);
+      }
+
+      if (fYear) {
+        params.push(fYear);
+        conditions.push(`f_year::text ILIKE $${params.length}`);
+      }
+
+      if (emp) {
+        params.push(emp);
+        conditions.push(`employee ILIKE $${params.length}`);
+      }
+
+      if (month) {
+        params.push(month);
+        conditions.push(`month::text = $${params.length}`);
       }
 
       if (customKey && customValue) {
@@ -85,7 +103,7 @@ export const archiveListHandler = async (req: Request, res: Response) => {
       }
 
       const dataResult = await client.query(
-        `SELECT id, file_name, title, author, pages, custom_data, thumb_path, file_node, folder_node
+        `SELECT id, file_name, title, author, pages, custom_data, thumb_path, file_node, folder_node, f_year, employee, month
          FROM public.mega ${whereClause}
          ORDER BY ${orderBySql}
          LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
@@ -116,7 +134,16 @@ export const archiveFiltersHandler = async (req: Request, res: Response) => {
   try {
     const pool = getPool();
 
-    const [publisherResult, scannedByResult, languageResult, yearResult, keysResult] = await Promise.all([
+    const [
+      publisherResult,
+      scannedByResult,
+      languageResult,
+      yearResult,
+      keysResult,
+      fYearResult,
+      employeeResult,
+      monthResult
+    ] = await Promise.all([
       pool.query(
         `SELECT DISTINCT custom_data->>'PublishedBy' as value
          FROM public.mega
@@ -150,6 +177,15 @@ export const archiveFiltersHandler = async (req: Request, res: Response) => {
          WHERE custom_data IS NOT NULL AND jsonb_typeof(custom_data) = 'object'
          ORDER BY key`
       ),
+      pool.query(
+        `SELECT DISTINCT f_year as value FROM public.mega WHERE f_year IS NOT NULL ORDER BY value DESC`
+      ),
+      pool.query(
+        `SELECT DISTINCT employee as value FROM public.mega WHERE employee IS NOT NULL AND employee != '' ORDER BY value`
+      ),
+      pool.query(
+        `SELECT DISTINCT month as value FROM public.mega WHERE month IS NOT NULL ORDER BY value`
+      ),
     ]);
 
     res.json({
@@ -158,6 +194,9 @@ export const archiveFiltersHandler = async (req: Request, res: Response) => {
       languages: languageResult.rows.map((r: any) => r.value),
       years: yearResult.rows.map((r: any) => r.value),
       customKeys: keysResult.rows.map((r: any) => r.key),
+      fYears: fYearResult.rows.map((r: any) => r.value),
+      employees: employeeResult.rows.map((r: any) => r.value),
+      months: monthResult.rows.map((r: any) => r.value),
     });
 
   } catch (err: any) {
